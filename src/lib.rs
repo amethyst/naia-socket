@@ -1,9 +1,9 @@
-pub fn public_function() {
-    println!("called gaia's `public_function()`");
-}
+extern crate gaia_data_transport;
 
 fn private_function() {
     println!("called gaia's `private_function()`");
+
+    gaia_data_transport::indirect_access();
 }
 
 pub fn indirect_access() {
