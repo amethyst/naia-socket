@@ -1,4 +1,4 @@
-extern crate gaia_data_transport;
+use gaia_data_transport;
 
 fn private_function() {
     println!("called gaia's `private_function()`");
