@@ -1,13 +1,26 @@
 use gaia_data_transport;
 
-fn private_function() {
-    println!("called gaia's `private_function()`");
+#[cfg(feature = "Server")]
+use gaia_data_transport::server::Server;
 
-    gaia_data_transport::indirect_access();
+#[cfg(feature = "Client")]
+use gaia_data_transport::client::Client;
+
+
+pub fn main() {
+    #[cfg(feature = "Server")]
+    main_server();
+
+    #[cfg(feature = "Client")]
+    main_client();
 }
 
-pub fn indirect_access() {
-    print!("called gaia's `indirect_access()`, that\n> ");
+#[cfg(feature = "Server")]
+fn main_server() {
+    let server = Server::new();
+}
 
-    private_function();
+#[cfg(feature = "Client")]
+fn main_client() {
+    let client = Client::new();
 }
