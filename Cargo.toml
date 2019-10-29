@@ -7,11 +7,11 @@ edition = "2018"
 [features]
 Client = [ "gaia-data-transport/Client" ]
 Server = [ "gaia-data-transport/Server" ]
-ClientLinux = [ "gaia-data-transport/ClientLinux" ]
-ProtoClientWasm = [ "gaia-data-transport/ProtoClientWasm" ]
-FinalClientWasm = [ "gaia-data-transport/FinalClientWasm" ]
-ProtoServerLinux = [ "gaia-data-transport/ProtoServerLinux" ]
-FinalServerLinux = [ "gaia-data-transport/FinalServerLinux" ]
+LinuxClient = [ "gaia-data-transport/LinuxClient" ]
+ProtoWasmClient = [ "gaia-data-transport/ProtoWasmClient" ]
+FinalWasmClient = [ "gaia-data-transport/FinalWasmClient" ]
+ProtoLinuxServer = [ "gaia-data-transport/ProtoLinuxServer" ]
+FinalLinuxServer = [ "gaia-data-transport/FinalLinuxServer" ]
 
 [dependencies]
 gaia-data-transport = { path = "../gaia-data-transport" } # { git = "https://bitbucket.org/connorcarpenter/gaia-data-transport.git" }

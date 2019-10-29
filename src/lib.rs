@@ -4,28 +4,27 @@ use gaia_data_transport;
 use crate::gaia_data_transport::server::{ Server, ServerImpl, instance, set_instance};
 
 #[cfg(feature = "Server")]
+pub fn main() {
+    unsafe { set_instance(ServerImpl::new().unwrap()) };
+}
+
+#[cfg(feature = "Server")]
 pub(crate) fn server() -> &'static mut ServerImpl {
     unsafe { instance() }
 }
 
+
+
+
 #[cfg(feature = "Client")]
-use gaia_data_transport::client::Client;
+use crate::gaia_data_transport::client::{ Client, ClientImpl, instance, set_instance};
 
-
+#[cfg(feature = "Client")]
 pub fn main() {
-    #[cfg(feature = "Server")]
-    main_server();
-
-    #[cfg(feature = "Client")]
-    main_client();
-}
-
-#[cfg(feature = "Server")]
-fn main_server() {
-    unsafe { set_instance(ServerImpl::new().unwrap()) };
+    unsafe { set_instance(ClientImpl::new().unwrap()) };
 }
 
 #[cfg(feature = "Client")]
-fn main_client() {
-    let client = Client::new();
+pub(crate) fn client() -> &'static mut ClientImpl {
+    unsafe { instance() }
 }
