@@ -1,30 +1,21 @@
+
 use gaia_data_transport;
 
-#[cfg(feature = "Server")]
-use crate::gaia_data_transport::server::{ Server, ServerImpl, instance, set_instance};
-
-#[cfg(feature = "Server")]
-pub fn main() {
-    unsafe { set_instance(ServerImpl::new().unwrap()) };
-}
-
-#[cfg(feature = "Server")]
-pub(crate) fn server() -> &'static mut ServerImpl {
-    unsafe { instance() }
-}
-
-
-
+pub mod shared;
 
 #[cfg(feature = "Client")]
-use crate::gaia_data_transport::client::{ Client, ClientImpl, instance, set_instance};
+pub mod client;
 
 #[cfg(feature = "Client")]
 pub fn main() {
-    unsafe { set_instance(ClientImpl::new().unwrap()) };
+    client::main();
 }
 
-#[cfg(feature = "Client")]
-pub(crate) fn client() -> &'static mut ClientImpl {
-    unsafe { instance() }
+#[cfg(feature = "Server")]
+pub mod server;
+
+#[cfg(feature = "Server")]
+pub fn main() {
+    server::main();
 }
+
