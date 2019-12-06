@@ -5,13 +5,15 @@ authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
 
 [features]
-Client = [ "gaia-data-transport/Client" ]
-Server = [ "gaia-data-transport/Server" ]
-LinuxClient = [ "gaia-data-transport/LinuxClient" ]
-ProtoWasmClient = [ "gaia-data-transport/ProtoWasmClient" ]
-FinalWasmClient = [ "gaia-data-transport/FinalWasmClient" ]
-ProtoLinuxServer = [ "gaia-data-transport/ProtoLinuxServer" ]
-FinalLinuxServer = [ "gaia-data-transport/FinalLinuxServer" ]
+Client = [ ]
+Server = [ ]
+LinuxClient = [ "ws" ]
+ProtoWasmClient = [ ] #[ "wasm-bindgen", "web-sys" ]
+FinalWasmClient = [ ] #[ ? ]
+ProtoLinuxServer = [ "ws" ]
+FinalLinuxServer = [ ] #[ ? ]
 
 [dependencies]
-gaia-data-transport = { path = "../gaia-data-transport" } # { git = "https://bitbucket.org/connorcarpenter/gaia-data-transport.git" }
+ws = { version = "0.7.6", optional = true }
+wasm-bindgen = { version = "0.2.50", optional = true }
+web-sys = { version = "0.3.22", optional = true, features = [ "ErrorEvent", "MessageEvent", "WebSocket" ] }

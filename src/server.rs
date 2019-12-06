@@ -16,26 +16,31 @@ pub struct Server {
 
 impl Server {
     pub fn new() -> Server { //args should take a shared config, and a port
+        println!("hello server!");
         Server {}
     }
 
-    pub fn onConnect(&mut self, func: fn()) { //function should have client, clientData, and callback?
+    pub fn on_connect(&mut self, func: fn()) { //function should have client, clientData, and callback?
 
     }
 
-    pub fn onDisconnect(&mut self, func: fn()) { //function should have client
+    pub fn on_disconnect(&mut self, func: fn()) { //function should have client
 
     }
 
-    pub fn addEntity(&mut self) {
+    pub fn add_object(&mut self) {
 
     }
 
-    pub fn removeEntity(&mut self) {
+    pub fn remove_object(&mut self) {
 
     }
 
-    pub fn getNextMessage(&mut self) {
+    pub fn send_message(&mut self) {
+
+    }
+
+    pub fn receive_message(&mut self) {
 
     }
 

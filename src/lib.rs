@@ -1,12 +1,13 @@
-
-use gaia_data_transport;
-
 pub mod shared;
 
 #[cfg(feature = "Client")]
-pub mod client;
+mod client;
+
+#[cfg(feature = "Client")]
+pub use client::Client as Client;
 
 #[cfg(feature = "Server")]
-pub mod server;
+mod server;
 
-
+#[cfg(feature = "Server")]
+pub use server::Server as Server;
