@@ -1,13 +1,6 @@
 
-//use crate::gaia_data_transport::client::{ Client, ClientImpl, instance, set_instance};
-//
-//pub fn main() {
-//    unsafe { set_instance(ClientImpl::new().unwrap()) };
-//}
-//
-//pub(crate) fn client() -> &'static mut ClientImpl {
-//    unsafe { instance() }
-//}
+mod socket;
+use crate::client::socket::{ Socket, SocketImpl, instance, set_instance };
 
 pub struct Client {
 
@@ -15,7 +8,11 @@ pub struct Client {
 
 impl Client {
     pub fn new() -> Client {
+
         println!("hello client!");
+
+        unsafe { set_instance(SocketImpl::new().unwrap()) };
+
         Client {}
     }
 
