@@ -2,7 +2,7 @@
 use crate::Result;
 pub use crate::user::User;
 
-pub trait Socket {
+pub trait ServerSocket {
     unsafe fn new() -> Result<Self> where Self: Sized;
 
     unsafe fn on_connection(&mut self, func: fn(User));
@@ -17,36 +17,31 @@ pub trait Socket {
 }
 
 /// Proto Linux Server
-#[cfg(feature = "ProtoLinuxServer")]
-mod proto_socket;
+#[cfg(feature = "WsServer")]
+mod ws_server_socket;
 
-#[cfg(feature = "ProtoLinuxServer")]
-pub use self::proto_socket::ProtoSocketBackend;
+#[cfg(feature = "WsServer")]
+pub use self::ws_server_socket::WsServerSocket;
 
-#[cfg(feature = "ProtoLinuxServer")]
-pub type SocketImpl = ProtoSocketBackend;
-
-
+#[cfg(feature = "WsServer")]
+pub type ServerSocketImpl = WsServerSocket;
 
 /// Final Server ///
-#[cfg(feature = "FinalLinuxServer")]
-mod final_socket;
+#[cfg(feature = "WebrtcServer")]
+mod webrtc_server_socket;
 
-#[cfg(feature = "FinalLinuxServer")]
-pub use self::final_socket::FinalSocketBackend;
+#[cfg(feature = "WebrtcServer")]
+pub use self::webrtc_server_socket::WebrtcServerSocket;
 
-#[cfg(feature = "FinalLinuxServer")]
-pub type SocketImpl = FinalSocketBackend;
+#[cfg(feature = "WebrtcServer")]
+pub type ServerSocketImpl = WebrtcServerSocket;
 
+static mut SOCKET_BACKEND_INSTANCE: Option<ServerSocketImpl> = None;
 
-
-
-static mut SOCKET_BACKEND_INSTANCE: Option<SocketImpl> = None;
-
-pub unsafe fn instance() -> &'static mut SocketImpl {
+pub unsafe fn instance() -> &'static mut ServerSocketImpl {
     SOCKET_BACKEND_INSTANCE.as_mut().unwrap()
 }
 
-pub unsafe fn set_instance(instance: SocketImpl) {
+pub unsafe fn set_instance(instance: ServerSocketImpl) {
     SOCKET_BACKEND_INSTANCE = Some(instance);
 }

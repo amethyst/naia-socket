@@ -1,6 +1,6 @@
 use crate::Result;
 
-pub trait Socket {
+pub trait ClientSocket {
     unsafe fn new() -> Result<Self> where Self: Sized;
 
     unsafe fn on_connection(&mut self, func: fn());
@@ -19,44 +19,41 @@ pub trait Socket {
 }
 
 /// Linux Client
-#[cfg(feature = "LinuxClient")]
-mod linux_socket;
+#[cfg(feature = "WsLinuxClient")]
+mod ws_linux_client_socket;
 
-#[cfg(feature = "LinuxClient")]
-pub use linux_socket::LinuxSocketBackend;
+#[cfg(feature = "WsLinuxClient")]
+pub use ws_linux_client_socket::WsLinuxClientSocket;
 
-#[cfg(feature = "LinuxClient")]
-pub type SocketImpl = LinuxSocketBackend;
-
+#[cfg(feature = "WsLinuxClient")]
+pub type ClientSocketImpl = WsLinuxClientSocket;
 
 /// Proto Wasm Client ///
-#[cfg(feature = "ProtoWasmClient")]
-mod proto_wasm_socket;
+#[cfg(feature = "WsWasmClient")]
+mod ws_wasm_client_socket;
 
-#[cfg(feature = "ProtoWasmClient")]
-pub use self::proto_wasm_socket::ProtoWasmSocketBackend;
+#[cfg(feature = "WsWasmClient")]
+pub use self::ws_wasm_client_socket::WsWasmClientSocket;
 
-#[cfg(feature = "ProtoWasmClient")]
-pub type SocketImpl = ProtoWasmSocketBackend;
-
+#[cfg(feature = "WsWasmClient")]
+pub type ClientSocketImpl = WsWasmClientSocket;
 
 /// Final Wasm Client ///
-#[cfg(feature = "FinalWasmClient")]
-mod final_wasm_socket;
+#[cfg(feature = "WebrtcWasmClient")]
+mod webrtc_client_socket;
 
-#[cfg(feature = "FinalWasmClient")]
-pub use self::final_wasm_socket::FinalWasmSocketBackend;
+#[cfg(feature = "WebrtcWasmClient")]
+pub use self::webrtc_client_socket::WebrtcClientSocket;
 
-#[cfg(feature = "FinalWasmClient")]
-pub type SocketImpl = FinalWasmSocketBackend;
+#[cfg(feature = "WebrtcWasmClient")]
+pub type ClientSocketImpl = WebrtcClientSocket;
 
+static mut SOCKET_BACKEND_INSTANCE: Option<ClientSocketImpl> = None;
 
-static mut SOCKET_BACKEND_INSTANCE: Option<SocketImpl> = None;
-
-pub unsafe fn instance() -> &'static mut SocketImpl {
+pub unsafe fn instance() -> &'static mut ClientSocketImpl {
     SOCKET_BACKEND_INSTANCE.as_mut().unwrap()
 }
 
-pub unsafe fn set_instance(instance: SocketImpl) {
+pub unsafe fn set_instance(instance: ClientSocketImpl) {
     SOCKET_BACKEND_INSTANCE = Some(instance);
 }

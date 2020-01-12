@@ -1,15 +1,15 @@
 use crate::Result;
-use crate::server::socket::Socket;
+use crate::server::socket::ServerSocket;
 pub use crate::user::User;
 
-pub struct FinalSocketBackend {
+pub struct WsServerSocket {
 
 }
 
-impl Socket for FinalSocketBackend {
-    unsafe fn new() -> Result<FinalSocketBackend> {
-        println!("Hello FinalSocketBackend!");
-        Ok(FinalSocketBackend {})
+impl ServerSocket for WsServerSocket {
+    unsafe fn new() -> Result<WsServerSocket> {
+        println!("Hello WsServerSocket!");
+        Ok(WsServerSocket {})
     }
 
     unsafe fn on_connection(&mut self, func: fn(User)){

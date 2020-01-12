@@ -1,6 +1,6 @@
 
 mod socket;
-use crate::server::socket::{ Socket, SocketImpl, instance, set_instance };
+use crate::server::socket::{ServerSocket, ServerSocketImpl, instance, set_instance };
 
 pub struct Server {
 
@@ -11,7 +11,7 @@ impl Server {
 
         println!("hello server!");
 
-        unsafe { set_instance(SocketImpl::new().unwrap()) };
+        unsafe { set_instance(ServerSocketImpl::new().unwrap()) };
 
         Server {}
     }

@@ -1,14 +1,14 @@
 use crate::Result;
-use crate::client::socket::Socket;
+use crate::client::socket::ClientSocket;
 
-pub struct ProtoWasmSocketBackend {
+pub struct WebrtcClientSocket {
 
 }
 
-impl Socket for ProtoWasmSocketBackend {
-    unsafe fn new() -> Result<ProtoWasmSocketBackend> {
-        println!("Hello ProtoWasmSocketBackend!");
-        Ok(ProtoWasmSocketBackend {})
+impl ClientSocket for WebrtcClientSocket {
+    unsafe fn new() -> Result<WebrtcClientSocket> {
+        println!("Hello WebrtcClientSocket!");
+        Ok(WebrtcClientSocket {})
     }
 
     unsafe fn on_connection(&mut self, func: fn()) {

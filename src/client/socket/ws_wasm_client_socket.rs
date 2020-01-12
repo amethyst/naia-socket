@@ -1,14 +1,14 @@
 use crate::Result;
-use crate::client::socket::Socket;
+use crate::client::socket::ClientSocket;
 
-pub struct FinalWasmSocketBackend {
+pub struct WsWasmClientSocket {
 
 }
 
-impl Socket for FinalWasmSocketBackend {
-    unsafe fn new() -> Result<FinalWasmSocketBackend> {
-        println!("Hello FinalWasmSocketBackend!");
-        Ok(FinalWasmSocketBackend {})
+impl ClientSocket for WsWasmClientSocket {
+    unsafe fn new() -> Result<WsWasmClientSocket> {
+        println!("Hello WsWasmClientSocket!");
+        Ok(WsWasmClientSocket {})
     }
 
     unsafe fn on_connection(&mut self, func: fn()) {

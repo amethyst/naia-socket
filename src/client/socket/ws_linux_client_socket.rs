@@ -1,12 +1,12 @@
 use crate::Result;
-use crate::client::socket::Socket;
+use crate::client::socket::ClientSocket;
 
-pub struct LinuxSocketBackend {}
+pub struct WsLinuxClientSocket {}
 
-impl Socket for LinuxSocketBackend {
-    unsafe fn new() -> Result<LinuxSocketBackend> {
-        println!("Hello LinuxSocketBackend!");
-        Ok(LinuxSocketBackend {})
+impl ClientSocket for WsLinuxClientSocket {
+    unsafe fn new() -> Result<WsLinuxClientSocket> {
+        println!("Hello WsLinuxClientSocket!");
+        Ok(WsLinuxClientSocket {})
     }
 
     unsafe fn on_connection(&mut self, func: fn()) {}

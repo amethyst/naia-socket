@@ -1,15 +1,15 @@
 use crate::Result;
-use crate::server::socket::Socket;
+use crate::server::socket::ServerSocket;
 pub use crate::user::User;
 
-pub struct ProtoSocketBackend {
+pub struct WebrtcServerSocket {
 
 }
 
-impl Socket for ProtoSocketBackend {
-    unsafe fn new() -> Result<ProtoSocketBackend> {
-        println!("Hello ProtoSocketBackend!");
-        Ok(ProtoSocketBackend {})
+impl ServerSocket for WebrtcServerSocket {
+    unsafe fn new() -> Result<WebrtcServerSocket> {
+        println!("Hello WebrtcServerSocket!");
+        Ok(WebrtcServerSocket {})
     }
 
     unsafe fn on_connection(&mut self, func: fn(User)){

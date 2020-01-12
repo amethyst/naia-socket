@@ -7,11 +7,11 @@ edition = "2018"
 [features]
 Client = [ ]
 Server = [ ]
-LinuxClient = [ "ws" ]
-ProtoWasmClient = [ ] #[ "wasm-bindgen", "web-sys" ]
-FinalWasmClient = [ ] #[ ? ]
-ProtoLinuxServer = [ "ws" ]
-FinalLinuxServer = [ ] #[ ? ]
+WsLinuxClient = [ "ws" ]
+WsWasmClient = [ ] #[ "wasm-bindgen", "web-sys" ]
+WebrtcWasmClient = [ ] #[ ? ]
+WsServer = [ "ws" ]
+WebrtcServer = [ ] #[ ? ]
 
 [dependencies]
 ws = { version = "0.7.6", optional = true }
