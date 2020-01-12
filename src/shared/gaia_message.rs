@@ -1,5 +1,10 @@
+
+use std::any::Any;
+use crate::Result;
+
 pub trait GaiaMessage {
-    fn new() -> Result<Self> where Self: Sized;
+
+    fn as_any(&self) -> &dyn Any;
 
     fn pack(&self);
 
