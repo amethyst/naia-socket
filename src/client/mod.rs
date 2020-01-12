@@ -28,11 +28,11 @@ impl Client {
 
     }
 
-    pub fn send_message(&mut self) {
+    pub fn queue_message(&mut self) {
 
     }
 
-    pub fn update(&mut self) {
+    pub fn send_messages(&mut self) {
 
     }
 

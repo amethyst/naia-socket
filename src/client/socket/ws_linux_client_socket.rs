@@ -9,17 +9,17 @@ impl ClientSocket for WsLinuxClientSocket {
         Ok(WsLinuxClientSocket {})
     }
 
-    unsafe fn on_connection(&mut self, func: fn()) {}
+    fn on_connection(&self, func: fn()) {}
 
-    unsafe fn on_disconnection(&mut self, func: fn()) {}
+    fn on_disconnection(&self, func: fn()) {}
 
-    unsafe fn on_receive(&mut self, func: fn(&str)) {}
+    fn on_receive(&self, func: fn(&str)) {}
 
-    unsafe fn on_error(&mut self, func: fn(&str)) {}
+    fn on_error(&self, func: fn(&str)) {}
 
-    unsafe fn connect<S>(&mut self, address: &str) {}
+    fn connect<S>(&self, address: &str) {}
 
-    unsafe fn disconnect(&mut self) {}
+    fn disconnect(&self) {}
 
-    unsafe fn send<S>(&mut self, msg: &str) {}
+    fn send<S>(&self, msg: &str) {}
 }

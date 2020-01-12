@@ -12,23 +12,23 @@ impl ServerSocket for WsServerSocket {
         Ok(WsServerSocket {})
     }
 
-    unsafe fn on_connection(&mut self, func: fn(User)){
+    fn on_connection(&self, func: fn(User)){
 
     }
 
-    unsafe fn on_disconnection(&mut self, func: fn(User)) {
+    fn on_disconnection(&self, func: fn(User)) {
 
     }
 
-    unsafe fn on_receive(&mut self, func: fn(User, &str)) {
+    fn on_receive(&self, func: fn(User, &str)) {
 
     }
 
-    unsafe fn on_error(&mut self, func: fn(&str)) {
+    fn on_error(&self, func: fn(&str)) {
 
     }
 
-    unsafe fn listen<S>(&mut self, address: &str) {
+    fn listen<S>(&self, address: &str) {
 
     }
 }

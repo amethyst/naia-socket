@@ -16,6 +16,10 @@ impl Server {
         Server {}
     }
 
+    pub fn connect(&mut self) { //put a port in here..
+
+    }
+
     pub fn on_connect(&mut self, func: fn()) { //function should have client, clientData, and callback?
 
     }
