@@ -6,7 +6,7 @@ pub struct WsWasmClientSocket {
 }
 
 impl ClientSocket for WsWasmClientSocket {
-    unsafe fn new() -> Result<WsWasmClientSocket> {
+    fn new() -> Result<WsWasmClientSocket> {
         println!("Hello WsWasmClientSocket!");
         Ok(WsWasmClientSocket {})
     }

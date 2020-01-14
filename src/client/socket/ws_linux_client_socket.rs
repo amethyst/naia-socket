@@ -1,10 +1,12 @@
 use crate::Result;
 use crate::client::socket::ClientSocket;
 
-pub struct WsLinuxClientSocket {}
+pub struct WsLinuxClientSocket {
+
+}
 
 impl ClientSocket for WsLinuxClientSocket {
-    unsafe fn new() -> Result<WsLinuxClientSocket> {
+    fn new() -> Result<WsLinuxClientSocket> {
         println!("Hello WsLinuxClientSocket!");
         Ok(WsLinuxClientSocket {})
     }

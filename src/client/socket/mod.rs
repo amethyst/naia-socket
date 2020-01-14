@@ -1,7 +1,7 @@
 use crate::Result;
 
 pub trait ClientSocket {
-    unsafe fn new() -> Result<Self> where Self: Sized;
+    fn new() -> Result<Self> where Self: Sized;
 
     fn on_connection(&self, func: fn());
 
@@ -47,13 +47,3 @@ pub use self::webrtc_client_socket::WebrtcClientSocket;
 
 #[cfg(feature = "WebrtcWasmClient")]
 pub type ClientSocketImpl = WebrtcClientSocket;
-
-static mut SOCKET_BACKEND_INSTANCE: Option<ClientSocketImpl> = None;
-
-pub unsafe fn instance() -> &'static mut ClientSocketImpl {
-    SOCKET_BACKEND_INSTANCE.as_mut().unwrap()
-}
-
-pub unsafe fn set_instance(instance: ClientSocketImpl) {
-    SOCKET_BACKEND_INSTANCE = Some(instance);
-}

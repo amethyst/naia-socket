@@ -6,7 +6,7 @@ pub struct WebrtcClientSocket {
 }
 
 impl ClientSocket for WebrtcClientSocket {
-    unsafe fn new() -> Result<WebrtcClientSocket> {
+    fn new() -> Result<WebrtcClientSocket> {
         println!("Hello WebrtcClientSocket!");
         Ok(WebrtcClientSocket {})
     }

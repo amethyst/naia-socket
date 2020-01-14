@@ -7,7 +7,7 @@ pub struct WebrtcServerSocket {
 }
 
 impl ServerSocket for WebrtcServerSocket {
-    unsafe fn new() -> Result<WebrtcServerSocket> {
+    fn new() -> Result<WebrtcServerSocket> {
         println!("Hello WebrtcServerSocket!");
         Ok(WebrtcServerSocket {})
     }

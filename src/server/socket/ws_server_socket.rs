@@ -7,7 +7,7 @@ pub struct WsServerSocket {
 }
 
 impl ServerSocket for WsServerSocket {
-    unsafe fn new() -> Result<WsServerSocket> {
+    fn new() -> Result<WsServerSocket> {
         println!("Hello WsServerSocket!");
         Ok(WsServerSocket {})
     }

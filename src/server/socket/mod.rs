@@ -3,7 +3,7 @@ use crate::Result;
 pub use crate::user::User;
 
 pub trait ServerSocket {
-    unsafe fn new() -> Result<Self> where Self: Sized;
+    fn new() -> Result<Self> where Self: Sized;
 
     fn on_connection(&self, func: fn(User));
 
@@ -35,13 +35,3 @@ pub use self::webrtc_server_socket::WebrtcServerSocket;
 
 #[cfg(feature = "WebrtcServer")]
 pub type ServerSocketImpl = WebrtcServerSocket;
-
-static mut SOCKET_BACKEND_INSTANCE: Option<ServerSocketImpl> = None;
-
-pub unsafe fn instance() -> &'static mut ServerSocketImpl {
-    SOCKET_BACKEND_INSTANCE.as_mut().unwrap()
-}
-
-pub unsafe fn set_instance(instance: ServerSocketImpl) {
-    SOCKET_BACKEND_INSTANCE = Some(instance);
-}

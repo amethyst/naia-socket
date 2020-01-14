@@ -1,22 +1,26 @@
 
 mod socket;
 
-use crate::server::socket::{ServerSocket, ServerSocketImpl, instance, set_instance };
+use crate::server::socket::{ServerSocket, ServerSocketImpl};
 use std::net::SocketAddr;
 use crate::shared::GaiaMessage;
 
 pub struct Server {
-
+    instance: ServerSocketImpl
 }
 
 impl Server {
     pub fn new() -> Server { //args should take a shared config, and a port
 
-        println!("hello server!");
+        println!("Server New!");
 
-        unsafe { set_instance(ServerSocketImpl::new().unwrap()) };
+        Server {
+            instance: ServerSocketImpl::new().unwrap()
+        }
+    }
 
-        Server {}
+    pub fn update(&self) {
+        println!("Server Update!");
     }
 
     pub fn connect(&self, listen_addr: SocketAddr) { //put a port in here..
@@ -43,11 +47,6 @@ impl Server {
 
     }
 
-    pub fn receive_message(&self) -> Option<Box<dyn GaiaMessage>> {
-        let msg = Ga
-    }
-
-    pub fn update(&self) {
-
+    pub fn receive_message(&self) {
     }
 }
