@@ -1,14 +1,14 @@
 use crate::Result;
 use crate::client::socket::ClientSocket;
 
-pub struct WsWasmClientSocket {
+pub struct UdpClientSocket {
 
 }
 
-impl ClientSocket for WsWasmClientSocket {
-    fn new() -> Result<WsWasmClientSocket> {
-        println!("Hello WsWasmClientSocket!");
-        Ok(WsWasmClientSocket {})
+impl ClientSocket for UdpClientSocket {
+    fn new() -> Result<UdpClientSocket> {
+        println!("Hello UdpClientSocket!");
+        Ok(UdpClientSocket {})
     }
 
     fn on_connection(&self, func: fn()) {

@@ -2,14 +2,14 @@ use crate::Result;
 use crate::server::socket::ServerSocket;
 pub use crate::user::User;
 
-pub struct WsServerSocket {
+pub struct UdpServerSocket {
 
 }
 
-impl ServerSocket for WsServerSocket {
-    fn new() -> Result<WsServerSocket> {
-        println!("Hello WsServerSocket!");
-        Ok(WsServerSocket {})
+impl ServerSocket for UdpServerSocket {
+    fn new() -> Result<UdpServerSocket> {
+        println!("Hello UdpServerSocket!");
+        Ok(UdpServerSocket {})
     }
 
     fn on_connection(&self, func: fn(User)){

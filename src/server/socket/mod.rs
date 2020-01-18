@@ -17,14 +17,14 @@ pub trait ServerSocket {
 }
 
 /// Proto Linux Server
-#[cfg(feature = "WsServer")]
-mod ws_server_socket;
+#[cfg(feature = "UdpServer")]
+mod udp_server_socket;
 
-#[cfg(feature = "WsServer")]
-pub use self::ws_server_socket::WsServerSocket;
+#[cfg(feature = "UdpServer")]
+pub use self::udp_server_socket::UdpServerSocket;
 
-#[cfg(feature = "WsServer")]
-pub type ServerSocketImpl = WsServerSocket;
+#[cfg(feature = "UdpServer")]
+pub type ServerSocketImpl = UdpServerSocket;
 
 /// Final Server ///
 #[cfg(feature = "WebrtcServer")]

@@ -18,32 +18,22 @@ pub trait ClientSocket {
     fn send<S>(&self, msg: &str);
 }
 
-/// Linux Client
-#[cfg(feature = "WsLinuxClient")]
-mod ws_linux_client_socket;
+/// UDP Client ///
+#[cfg(feature = "UdpClient")]
+mod udp_client_socket;
 
-#[cfg(feature = "WsLinuxClient")]
-pub use ws_linux_client_socket::WsLinuxClientSocket;
+#[cfg(feature = "UdpClient")]
+pub use self::udp_client_socket::UdpClientSocket;
 
-#[cfg(feature = "WsLinuxClient")]
-pub type ClientSocketImpl = WsLinuxClientSocket;
+#[cfg(feature = "UdpClient")]
+pub type ClientSocketImpl = UdpClientSocket;
 
-/// Proto Wasm Client ///
-#[cfg(feature = "WsWasmClient")]
-mod ws_wasm_client_socket;
-
-#[cfg(feature = "WsWasmClient")]
-pub use self::ws_wasm_client_socket::WsWasmClientSocket;
-
-#[cfg(feature = "WsWasmClient")]
-pub type ClientSocketImpl = WsWasmClientSocket;
-
-/// Final Wasm Client ///
-#[cfg(feature = "WebrtcWasmClient")]
+/// WebRTC Client ///
+#[cfg(feature = "WebrtcClient")]
 mod webrtc_client_socket;
 
-#[cfg(feature = "WebrtcWasmClient")]
+#[cfg(feature = "WebrtcClient")]
 pub use self::webrtc_client_socket::WebrtcClientSocket;
 
-#[cfg(feature = "WebrtcWasmClient")]
+#[cfg(feature = "WebrtcClient")]
 pub type ClientSocketImpl = WebrtcClientSocket;

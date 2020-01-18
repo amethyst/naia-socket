@@ -25,10 +25,10 @@ impl Server {
 4. inside of receive_message() callback, it echoes back to client the same message with some appended thang*/
 
 
-        new_server.instance.listen(listen_address);
-
-        new_server.instance.on_receive()
-
+//        new_server.instance.listen(listen_address);
+//
+//        new_server.instance.on_receive()
+//
         new_server
     }
 

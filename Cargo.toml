@@ -7,13 +7,7 @@ edition = "2018"
 [features]
 Client = [ ]
 Server = [ ]
-WsLinuxClient = [ "ws" ]
-WsWasmClient = [ ] #[ "wasm-bindgen", "web-sys" ]
-WebrtcWasmClient = [ ] #[ ? ]
-WsServer = [ "ws" ]
+UdpClient = [ ]
+WebrtcClient = [ ] #[ ? ]
+UdpServer = [ ]
 WebrtcServer = [ ] #[ ? ]
-
-[dependencies]
-ws = { version = "0.7.6", optional = true }
-wasm-bindgen = { version = "0.2.50", optional = true }
-web-sys = { version = "0.3.22", optional = true, features = [ "ErrorEvent", "MessageEvent", "WebSocket" ] }
