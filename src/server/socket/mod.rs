@@ -1,15 +1,16 @@
 
+mod client_socket;
+use client_socket::ClientSocket;
 use crate::Result;
-pub use crate::user::User;
 
 pub trait ServerSocket {
     fn new() -> Result<Self> where Self: Sized;
 
-    fn on_connection(&self, func: fn(User));
+    fn on_connection(&self, func: fn(ClientSocket));
 
-    fn on_disconnection(&self, func: fn(User));
+    fn on_disconnection(&self, func: fn(ClientSocket));
 
-    fn on_receive(&self, func: fn(User, &str));
+    fn on_receive(&self, func: fn(ClientSocket, &str));
 
     fn on_error(&self, func: fn(&str));
 

@@ -1,6 +1,6 @@
 use crate::Result;
 use crate::server::socket::ServerSocket;
-pub use crate::user::User;
+use super::client_socket::ClientSocket;
 
 pub struct UdpServerSocket {
 
@@ -12,15 +12,15 @@ impl ServerSocket for UdpServerSocket {
         Ok(UdpServerSocket {})
     }
 
-    fn on_connection(&self, func: fn(User)){
+    fn on_connection(&self, func: fn(ClientSocket)){
 
     }
 
-    fn on_disconnection(&self, func: fn(User)) {
+    fn on_disconnection(&self, func: fn(ClientSocket)) {
 
     }
 
-    fn on_receive(&self, func: fn(User, &str)) {
+    fn on_receive(&self, func: fn(ClientSocket, &str)) {
 
     }
 

@@ -6,30 +6,27 @@ use std::net::SocketAddr;
 use crate::shared::GaiaMessage;
 
 pub struct Server {
-    instance: ServerSocketImpl
+    socket: ServerSocketImpl
 }
-
-const listen_address: &'static str = "127.0.0.1:3000";
 
 impl Server {
     pub fn new() -> Server { //args should take a shared config, and a port
 
         println!("Server New!");
 
-        let new_server = Server {
-            instance: ServerSocketImpl::new().unwrap()
-        };
+        let server_socket = ServerSocketImpl::new().unwrap();
 
-        /*Server listens at some port
+        /* Server listens at some port
 3. Server has a receive_message() callback
 4. inside of receive_message() callback, it echoes back to client the same message with some appended thang*/
 
+        server_socket.on_receive(|client_socket, message| {
 
-//        new_server.instance.listen(listen_address);
-//
-//        new_server.instance.on_receive()
-//
-        new_server
+        });
+
+        Server {
+            socket: server_socket
+        }
     }
 
     pub fn update(&self) {

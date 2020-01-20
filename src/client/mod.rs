@@ -3,7 +3,7 @@ mod socket;
 use crate::client::socket::{ClientSocket, ClientSocketImpl};
 
 pub struct Client {
-    instance: ClientSocketImpl
+    socket: ClientSocketImpl
 }
 
 impl Client {
@@ -12,7 +12,7 @@ impl Client {
         println!("Client New!");
 
         Client {
-            instance: ClientSocketImpl::new().unwrap()
+            socket: ClientSocketImpl::new().unwrap()
         }
     }
 

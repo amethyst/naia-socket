@@ -1,5 +1,5 @@
 
-mod user;
+mod internal_shared;
 
 pub mod shared;
 
