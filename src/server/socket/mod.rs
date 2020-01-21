@@ -14,7 +14,9 @@ pub trait ServerSocket {
 
     fn on_error(&self, func: fn(&str));
 
-    fn listen<S>(&self, address: &str);
+    fn listen(&self, address: &str);
+
+    fn update(&mut self);
 }
 
 /// Proto Linux Server

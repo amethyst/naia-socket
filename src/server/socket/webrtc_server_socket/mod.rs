@@ -28,7 +28,11 @@ impl ServerSocket for WebrtcServerSocket {
 
     }
 
-    fn listen<S>(&self, address: &str) {
+    fn listen(&self, address: &str) {
+
+    }
+
+    fn update(&self) {
 
     }
 }

@@ -1,9 +1,13 @@
-pub struct ClientSocket {
+use std::net::IpAddr;
 
+pub struct ClientSocket {
+    pub ip: IpAddr
 }
 
 impl ClientSocket {
-    fn new() -> ClientSocket {
-        ClientSocket {}
+    fn new(ip: IpAddr) -> ClientSocket {
+        ClientSocket {
+            ip
+        }
     }
 }
