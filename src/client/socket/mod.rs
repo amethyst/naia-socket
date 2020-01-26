@@ -1,17 +1,17 @@
 use crate::Result;
 
 pub trait ClientSocket {
-    fn new() -> Result<Self> where Self: Sized;
+    fn new() -> Self;
+
+    fn connect(&self, address: &str);
 
     fn on_connection(&self, func: fn());
 
     fn on_disconnection(&self, func: fn());
 
-    fn on_receive(&self, func: fn(&str));
+    fn on_receive(&mut self, func: fn(&str));
 
     fn on_error(&self, func: fn(&str));
-
-    fn connect<S>(&self, address: &str);
 
     fn disconnect(&self);
 

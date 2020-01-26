@@ -2,8 +2,10 @@
 mod socket;
 use crate::client::socket::{ClientSocket, ClientSocketImpl};
 
+const SERVER_ADDR: &str = "127.0.0.1:12351";
+
 pub struct Client {
-    socket: ClientSocketImpl
+    //socket: ClientSocketImpl
 }
 
 impl Client {
@@ -11,8 +13,16 @@ impl Client {
 
         println!("Client New!");
 
+        let mut client_socket = ClientSocketImpl::new();
+
+        client_socket.on_receive(|msg| {
+            println!("real. Received {:?}", msg);
+        });
+
+        client_socket.connect(SERVER_ADDR);
+
         Client {
-            socket: ClientSocketImpl::new().unwrap()
+            //socket: server_socket
         }
     }
 

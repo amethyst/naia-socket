@@ -35,6 +35,9 @@ impl ServerSocket for UdpServerSocket {
         loop {
             if let Ok(event) = receiver.recv() {
                 match event {
+                    SocketEvent::Connect(address) => {
+                        println!("Client connected: {}", address);
+                    }
                     SocketEvent::Packet(packet) => {
                         let msg1 = packet.payload();
 
@@ -53,9 +56,8 @@ impl ServerSocket for UdpServerSocket {
 //                                .expect("This should send");
                     }
                     SocketEvent::Timeout(address) => {
-                        println!("Client timed out: {}", address);
+                        println!("Client disconnected: {}", address);
                     }
-                    _ => {}
                 }
             }
         }

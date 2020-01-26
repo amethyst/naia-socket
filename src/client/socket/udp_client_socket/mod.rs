@@ -7,21 +7,26 @@ use std::time::Instant;
 
 use laminar::{ErrorKind, Packet, Socket, SocketEvent};
 
-const SERVER: &str = "127.0.0.1:12351";
-
 pub struct UdpClientSocket {
-
+    receive_function: fn(&str)
 }
 
 impl ClientSocket for UdpClientSocket {
-    fn new() -> Result<UdpClientSocket> {
+    fn new() -> UdpClientSocket {
         println!("Hello UdpClientSocket!");
 
-        let addr = "127.0.0.1:12352";
-        let mut socket = Socket::bind(addr).unwrap();
-        println!("Connected on {}", addr);
+        let new_client_socket = UdpClientSocket {
+            receive_function: |msg| { println!("default. Received {:?}", msg); }
+        };
 
-        let server = SERVER.parse().unwrap();
+        new_client_socket
+    }
+
+    fn connect(&self, address: &str) {
+        let mut socket = Socket::bind("127.0.0.1:12352").unwrap();
+        println!("Connected on {}", "127.0.0.1:12352");
+
+        let server = address.parse().unwrap();
 
         println!("Type a message and press Enter to send. Send `Bye!` to quit.");
 
@@ -52,8 +57,6 @@ impl ClientSocket for UdpClientSocket {
                 _ => println!("Silence.."),
             }
         }
-
-        Ok(UdpClientSocket {})
     }
 
     fn on_connection(&self, func: fn()) {
@@ -64,15 +67,11 @@ impl ClientSocket for UdpClientSocket {
 
     }
 
-    fn on_receive(&self, func: fn(&str)) {
-
+    fn on_receive(&mut self, func: fn(&str)) {
+        self.receive_function = func;
     }
 
     fn on_error(&self, func: fn(&str)) {
-
-    }
-
-    fn connect<S>(&self, address: &str) {
 
     }
 
