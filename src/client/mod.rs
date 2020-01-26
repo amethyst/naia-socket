@@ -15,8 +15,12 @@ impl Client {
 
         let mut client_socket = ClientSocketImpl::new();
 
-        client_socket.on_receive(|msg| {
-            println!("real. Received {:?}", msg);
+        client_socket.on_receive(move |msg| {
+            println!("Client received {:?}", msg);
+
+            let response_msg = msg.to_owned() + "|";
+
+            client_socket.send(response_msg.as_str());
         });
 
         client_socket.connect(SERVER_ADDR);
