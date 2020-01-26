@@ -7,10 +7,11 @@ edition = "2018"
 [features]
 Client = [ ]
 Server = [ ]
-UdpClient = [ "laminar" ]
+UdpClient = [ "laminar", "crossbeam-channel" ]
 WebrtcClient = [ ]
-UdpServer = [ "laminar" ]
+UdpServer = [ "laminar", "crossbeam-channel" ]
 WebrtcServer = [ ]
 
 [dependencies]
 laminar = { version = "*", optional = true }
+crossbeam-channel = { version = "0.3", optional = true }

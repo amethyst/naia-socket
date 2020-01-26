@@ -4,19 +4,17 @@ use client_socket::ClientSocket;
 use crate::Result;
 
 pub trait ServerSocket {
-    fn new() -> Result<Self> where Self: Sized;
+    fn new() -> Self;
+
+    fn listen(&self, address: &str);
 
     fn on_connection(&self, func: fn(ClientSocket));
 
     fn on_disconnection(&self, func: fn(ClientSocket));
 
-    fn on_receive(&self, func: fn(ClientSocket, &str));
+    fn on_receive(&mut self, func: fn(ClientSocket, &str));
 
     fn on_error(&self, func: fn(&str));
-
-    fn listen(&self, address: &str);
-
-    fn update(&mut self);
 }
 
 /// Proto Linux Server

@@ -4,9 +4,10 @@ mod socket;
 use crate::server::socket::{ServerSocket, ServerSocketImpl};
 use std::net::SocketAddr;
 use crate::shared::GaiaMessage;
+const SERVER_ADDR: &str = "127.0.0.1:12351";
 
 pub struct Server {
-    socket: ServerSocketImpl
+    //socket: ServerSocketImpl
 }
 
 impl Server {
@@ -14,23 +15,25 @@ impl Server {
 
         println!("Server New!");
 
-        let server_socket = ServerSocketImpl::new().unwrap();
+        let mut server_socket = ServerSocketImpl::new();
 
         /* Server listens at some port
 3. Server has a receive_message() callback
 4. inside of receive_message() callback, it echoes back to client the same message with some appended thang*/
 
-        server_socket.on_receive(|client_socket, message| {
-
+        server_socket.on_receive(|client_socket, msg| {
+            println!("real. Received {:?} from {:?}", msg, client_socket.ip);
         });
 
+        server_socket.listen(SERVER_ADDR);
+
         Server {
-            socket: server_socket
+            //socket: server_socket
         }
     }
 
     pub fn update(&mut self) {
-        self.socket.update();
+
     }
 
     pub fn connect(&self, listen_addr: SocketAddr) { //put a port in here..
