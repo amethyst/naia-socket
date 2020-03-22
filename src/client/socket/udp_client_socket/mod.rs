@@ -10,10 +10,6 @@ use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
 use std::{time};
 
-pub struct UdpClientSocket {
-    receive_function: Box<dyn Fn(&Sender, &str)>
-}
-
 struct ClientSender {
     send_function: Box<dyn Fn(&str)>
 }
@@ -32,11 +28,17 @@ impl Sender for ClientSender {
     }
 }
 
+pub struct UdpClientSocket {
+    connect_function: Box<dyn Fn(&Sender)>,
+    receive_function: Box<dyn Fn(&Sender, &str)>,
+}
+
 impl ClientSocket for UdpClientSocket {
     fn new() -> UdpClientSocket {
         println!("Hello UdpClientSocket!");
 
         let new_client_socket = UdpClientSocket {
+            connect_function: Box::new(|sender| { println!("default. Connected!"); }),
             receive_function: Box::new(|sender, msg| { println!("default. Received {:?}", msg); })
         };
 
@@ -50,7 +52,7 @@ impl ClientSocket for UdpClientSocket {
         println!("Connected on {}", "127.0.0.1:12352");
 
         let server: SocketAddr = address.parse().unwrap();
-        let line: String = "yo".to_string();
+
         let sender: ChannelSender<LaminarPacket> = socket.get_packet_sender();
 
         let receiver: ChannelReceiver<SocketEvent> = socket.get_event_receiver();
@@ -69,15 +71,21 @@ impl ClientSocket for UdpClientSocket {
         });
         ///////
 
-        println!("Client sending 'yo'");
+        //Send initial server handshake
+        let line: String = "client handshake".to_string();
+        println!("Client sending 'client handshake'");
         sender.send(LaminarPacket::reliable_unordered(
             server,
             line.clone().into_bytes(),
         ));
+        ///////
 
         loop {
             if let Ok(event) = receiver.recv() {
                 match event {
+                    SocketEvent::Connect(_) => {
+                        (self.connect_function)(&new_sender);
+                    }
                     SocketEvent::Packet(packet) => {
                         if packet.addr() == server {
                             let msg1 = packet.payload();
@@ -90,15 +98,16 @@ impl ClientSocket for UdpClientSocket {
                             println!("Unknown sender.");
                         }
                     }
-                    SocketEvent::Timeout(_) => {}
-                        _ => println!("Server disconnected.."),
+                    SocketEvent::Timeout(_) => {
+                        println!("Server disconnected..");
+                    }
                 }
             }
         }
     }
 
-    fn on_connection(&self, func: fn()) {
-
+    fn on_connection(&mut self, func: impl Fn(&Sender) + 'static) {
+        self.connect_function = Box::new(func);
     }
 
     fn on_disconnection(&self, func: fn()) {

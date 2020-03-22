@@ -9,7 +9,7 @@ pub trait ClientSocket {
 
     fn connect(&self, address: &str);
 
-    fn on_connection(&self, func: fn());
+    fn on_connection(&mut self, func: impl Fn(&Sender) + 'static);
 
     fn on_disconnection(&self, func: fn());
 

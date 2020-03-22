@@ -15,13 +15,21 @@ impl Client {
 
         let mut client_socket = ClientSocketImpl::new();
 
-        client_socket.on_receive(move |sender, msg| {
+        client_socket.on_connection(|sender| {
+            println!("Client connected, sending hello");
+            let msg: String = "hello server!".to_string();
+            sender.send(msg.as_str());
+        });
+
+        client_socket.on_receive(|sender, msg| {
             println!("Client received {:?}", msg);
 
-            let response_msg = msg.to_owned() + "|";
+            //let response_msg = msg.to_owned() + "|";
 
-            sender.send(response_msg.as_str());
+            //sender.send(response_msg.as_str());
         });
+
+
 
         client_socket.connect(SERVER_ADDR);
 
