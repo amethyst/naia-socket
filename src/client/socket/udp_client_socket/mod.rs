@@ -1,15 +1,35 @@
 use crate::Result;
-use crate::client::socket::ClientSocket;
+use crate::client::socket::{Sender, ClientSocket};
 
 use std::io::stdin;
 use std::thread;
 use std::time::Instant;
+use std::net::SocketAddr;
 
+use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
 use std::{time};
 
 pub struct UdpClientSocket {
-    receive_function: Box<dyn Fn(&str)>
+    receive_function: Box<dyn Fn(&Sender, &str)>
+}
+
+struct ClientSender {
+    send_function: Box<dyn Fn(&str)>
+}
+
+impl ClientSender {
+    fn new(func: impl Fn(&str) + 'static) -> ClientSender {
+        ClientSender {
+            send_function: Box::new(func)
+        }
+    }
+}
+
+impl Sender for ClientSender {
+    fn send(&self, msg: &str) {
+        (self.send_function)(msg);
+    }
 }
 
 impl ClientSocket for UdpClientSocket {
@@ -17,7 +37,7 @@ impl ClientSocket for UdpClientSocket {
         println!("Hello UdpClientSocket!");
 
         let new_client_socket = UdpClientSocket {
-            receive_function: Box::new(|msg| { println!("default. Received {:?}", msg); })
+            receive_function: Box::new(|sender, msg| { println!("default. Received {:?}", msg); })
         };
 
         new_client_socket
@@ -29,10 +49,25 @@ impl ClientSocket for UdpClientSocket {
         let mut socket = LaminarSocket::bind_with_config("127.0.0.1:12352", config).unwrap();
         println!("Connected on {}", "127.0.0.1:12352");
 
-        let server = address.parse().unwrap();
+        let server: SocketAddr = address.parse().unwrap();
         let line: String = "yo".to_string();
-        let (sender, receiver) = (socket.get_packet_sender(), socket.get_event_receiver());
+        let sender: ChannelSender<LaminarPacket> = socket.get_packet_sender();
+
+        let receiver: ChannelReceiver<SocketEvent> = socket.get_event_receiver();
         let _thread = thread::spawn(move || socket.start_polling());
+
+        //Trying to wrap the crossbeam ChannelSender struct into my own ClientSender trait...
+        let cloned_server: SocketAddr = server.clone();
+        let cloned_sender = sender.clone();
+        let new_sender: ClientSender = ClientSender::new(move |msg| {
+            let msg_string: String = msg.to_string();
+            let packet = LaminarPacket::reliable_unordered(
+                cloned_server,
+                msg_string.clone().into_bytes()
+            );
+            cloned_sender.send(packet);
+        });
+        ///////
 
         println!("Client sending 'yo'");
         sender.send(LaminarPacket::reliable_unordered(
@@ -50,7 +85,7 @@ impl ClientSocket for UdpClientSocket {
                             let msg = String::from_utf8_lossy(msg1);
                             let ip = packet.addr().ip();
 
-                            (self.receive_function)(&msg);
+                            (self.receive_function)(&new_sender, &msg);
                         } else {
                             println!("Unknown sender.");
                         }
@@ -70,7 +105,7 @@ impl ClientSocket for UdpClientSocket {
 
     }
 
-    fn on_receive(&mut self, func: impl Fn(&str) + 'static) {
+    fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static) {
         self.receive_function = Box::new(func);
     }
 

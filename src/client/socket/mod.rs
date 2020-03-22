@@ -1,5 +1,9 @@
 use crate::Result;
 
+pub trait Sender {
+    fn send(&self, msg: &str);
+}
+
 pub trait ClientSocket {
     fn new() -> Self;
 
@@ -9,7 +13,7 @@ pub trait ClientSocket {
 
     fn on_disconnection(&self, func: fn());
 
-    fn on_receive(&mut self, func: impl Fn(&str) + 'static);
+    fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static);
 
     fn on_error(&self, func: fn(&str));
 
