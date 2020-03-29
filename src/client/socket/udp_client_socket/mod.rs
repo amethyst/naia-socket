@@ -126,10 +126,6 @@ impl ClientSocket for UdpClientSocket {
         self.receive_function = Box::new(func);
     }
 
-    fn on_error(&self, func: fn(&str)) {
-
-    }
-
     fn disconnect(&self) {
 
     }

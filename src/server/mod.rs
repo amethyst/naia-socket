@@ -31,6 +31,10 @@ impl Server {
             sender.send(response_msg.as_str());
         });
 
+        server_socket.on_disconnection(|client_address| {
+            println!("Server on_disconnect(): {:?}", client_address);
+        });
+
         server_socket.listen(SERVER_ADDR);
 
         Server {

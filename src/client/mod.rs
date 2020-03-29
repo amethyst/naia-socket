@@ -11,7 +11,6 @@ pub struct Client {
 impl Client {
     pub fn new() -> Client {
 
-
         let mut client_socket = ClientSocketImpl::new();
 
         client_socket.on_connection(|sender| {

@@ -2,6 +2,7 @@
 mod client_socket;
 use client_socket::ClientSocket;
 use crate::Result;
+use std::net::IpAddr;
 
 pub trait ServerSocket {
     fn new() -> Self;
@@ -10,11 +11,9 @@ pub trait ServerSocket {
 
     fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static);
 
-    fn on_disconnection(&self, func: fn());
-
     fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
 
-    fn on_error(&self, func: fn(&str));
+    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static);
 }
 
 /// Proto Linux Server

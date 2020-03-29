@@ -9,12 +9,14 @@ use std::time::Instant;
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
 use crossbeam_channel::{self, unbounded, Receiver as ChannelReceiver, SendError, Sender as ChannelSender, TryRecvError};
 use std::{time};
+use std::net::IpAddr;
 
 /////
 
 pub struct UdpServerSocket {
     connect_function: Box<dyn Fn(&ClientSocket)>,
     receive_function: Box<dyn Fn(&ClientSocket, &str)>,
+    disconnect_function: Box<dyn Fn(IpAddr)>,
 }
 
 impl ServerSocket for UdpServerSocket {
@@ -23,7 +25,8 @@ impl ServerSocket for UdpServerSocket {
 
         let new_server_socket = UdpServerSocket {
             connect_function: Box::new(|client_socket| { println!("default. Connected!"); }),
-            receive_function: Box::new(|client_socket, msg| { println!("default. Received {:?}", msg); })
+            receive_function: Box::new(|client_socket, msg| { println!("default. Received {:?}", msg); }),
+            disconnect_function: Box::new(|ip_address| { println!("default. Disconnected {:?}", ip_address); })
         };
 
         new_server_socket
@@ -83,7 +86,7 @@ impl ServerSocket for UdpServerSocket {
                         (self.receive_function)(&client_socket, &msg);
                     }
                     SocketEvent::Timeout(address) => {
-                        println!("Client disconnected: {}", address);
+                        (self.disconnect_function)(address.ip());
                     }
                 }
             }
@@ -94,15 +97,11 @@ impl ServerSocket for UdpServerSocket {
         self.connect_function = Box::new(func);
     }
 
-    fn on_disconnection(&self, func: fn()) {
-
+    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
+        self.disconnect_function = Box::new(func);
     }
 
     fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
         self.receive_function = Box::new(func);
-    }
-
-    fn on_error(&self, func: fn(&str)) {
-
     }
 }
