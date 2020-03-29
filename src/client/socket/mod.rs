@@ -6,9 +6,11 @@ use server_socket::ServerSocket;
 pub trait ClientSocket {
     fn new() -> Self;
 
-    fn connect(&self, address: &str);
+    fn connect(&mut self, address: &str);
 
-    fn send(&self, msg: &str);
+    fn update(&mut self);
+
+    fn send(&mut self, msg: &str);
 
     fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static);
 

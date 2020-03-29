@@ -5,7 +5,7 @@ use crate::client::socket::{ClientSocket, ClientSocketImpl};
 const SERVER_ADDR: &str = "127.0.0.1:12351";
 
 pub struct Client {
-    //socket: ClientSocketImpl
+    socket: ClientSocketImpl
 }
 
 impl Client {
@@ -27,13 +27,15 @@ impl Client {
 
         client_socket.connect(SERVER_ADDR);
 
+        client_socket.send("just one extra post-connect message...");
+
         Client {
-            //socket: server_socket
+            socket: client_socket
         }
     }
 
-    pub fn update(&self) { // Maybe clients don't need update functions eventually...
-        println!("Client Update!");
+    pub fn update(&mut self) {
+        self.socket.update();
     }
 
     pub fn on_connect(&mut self, func: fn()) {
