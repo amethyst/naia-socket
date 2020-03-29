@@ -22,7 +22,7 @@ impl Server {
 4. inside of receive_message() callback, it echoes back to client the same message with some appended thang*/
 
         server_socket.on_receive(|client_socket, msg| {
-            println!("Server received {:?} from {:?}", msg, client_socket.ip);
+            println!("Server on_receive {:?} from {:?}", msg, client_socket.ip);
         });
 
         server_socket.listen(SERVER_ADDR);

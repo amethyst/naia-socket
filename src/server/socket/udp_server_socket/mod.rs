@@ -40,6 +40,13 @@ impl ServerSocket for UdpServerSocket {
                 match event {
                     SocketEvent::Connect(address) => {
                         println!("Client connected: {}", address);
+
+                        sender
+                            .send(LaminarPacket::reliable_unordered(
+                                address,
+                                "server-handshake-response".as_bytes().to_vec(),
+                            ))
+                            .expect("This should send");
                     }
                     SocketEvent::Packet(packet) => {
                         let msg1 = packet.payload();
@@ -48,13 +55,6 @@ impl ServerSocket for UdpServerSocket {
                         let ip = packet.addr().ip();
 
                         (self.receive_function)(ClientSocket { ip }, &msg);
-
-                        sender
-                            .send(LaminarPacket::reliable_unordered(
-                                packet.addr(),
-                                "Copy that!".as_bytes().to_vec(),
-                            ))
-                            .expect("This should send");
                     }
                     SocketEvent::Timeout(address) => {
                         println!("Client disconnected: {}", address);

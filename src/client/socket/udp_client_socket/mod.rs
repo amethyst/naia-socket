@@ -5,6 +5,7 @@ use std::io::stdin;
 use std::thread;
 use std::time::Instant;
 use std::net::SocketAddr;
+use log::error;
 
 use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
@@ -49,7 +50,7 @@ impl ClientSocket for UdpClientSocket {
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
         let mut socket = LaminarSocket::bind_with_config("127.0.0.1:12352", config).unwrap();
-        println!("Connected on {}", "127.0.0.1:12352");
+        println!("ClientSocket.connect() {}", "127.0.0.1:12352");
 
         let server: SocketAddr = address.parse().unwrap();
 
@@ -72,8 +73,8 @@ impl ClientSocket for UdpClientSocket {
         ///////
 
         //Send initial server handshake
-        let line: String = "client handshake".to_string();
-        println!("Client sending 'client handshake'");
+        let line: String = "client-handshake-request".to_string();
+        println!("Client sending 'client-handshake-request'");
         sender.send(LaminarPacket::reliable_unordered(
             server,
             line.clone().into_bytes(),
@@ -83,8 +84,9 @@ impl ClientSocket for UdpClientSocket {
         loop {
             if let Ok(event) = receiver.recv() {
                 match event {
-                    SocketEvent::Connect(_) => {
-                        (self.connect_function)(&new_sender);
+                    SocketEvent::Connect(address) => {
+                        // SHOULD NOT EVER GET HERE!
+                        error!("Client Socket has received a packet from an unknown host!");
                     }
                     SocketEvent::Packet(packet) => {
                         if packet.addr() == server {
@@ -93,12 +95,18 @@ impl ClientSocket for UdpClientSocket {
                             let msg = String::from_utf8_lossy(msg1);
                             let ip = packet.addr().ip();
 
-                            (self.receive_function)(&new_sender, &msg);
+                            let server_handshake_str = "server-handshake-response".to_string();
+                            if msg.eq(server_handshake_str.as_str()) {
+                                (self.connect_function)(&new_sender);
+                            }
+                            else {
+                                (self.receive_function)(&new_sender, &msg);
+                            }
                         } else {
                             println!("Unknown sender.");
                         }
                     }
-                    SocketEvent::Timeout(_) => {
+                    SocketEvent::Timeout(address) => {
                         println!("Server disconnected..");
                     }
                 }
