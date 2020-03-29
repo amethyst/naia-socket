@@ -21,8 +21,18 @@ impl Server {
 3. Server has a receive_message() callback
 4. inside of receive_message() callback, it echoes back to client the same message with some appended thang*/
 
-        server_socket.on_receive(|client_socket, msg| {
-            println!("Server on_receive {:?} from {:?}", msg, client_socket.ip);
+        server_socket.on_connection(|sender| {
+            println!("Server on_connection()");
+
+            let msg: String = "hello new client!".to_string();
+            sender.send(msg.as_str());
+        });
+
+        server_socket.on_receive(|sender, msg| {
+            println!("Server on_receive(): {:?}", msg);
+
+            let response_msg = "echo from server: ".to_owned() + msg;
+            sender.send(response_msg.as_str());
         });
 
         server_socket.listen(SERVER_ADDR);

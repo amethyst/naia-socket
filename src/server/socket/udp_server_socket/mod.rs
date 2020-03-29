@@ -1,5 +1,5 @@
 use crate::Result;
-use crate::server::socket::ServerSocket;
+use crate::server::socket::{ServerSocket};
 use super::client_socket::ClientSocket;
 
 use std::io::stdin;
@@ -7,13 +7,14 @@ use std::thread;
 use std::time::Instant;
 
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
-use crossbeam_channel::{self, unbounded, Receiver, SendError, Sender, TryRecvError};
+use crossbeam_channel::{self, unbounded, Receiver as ChannelReceiver, SendError, Sender as ChannelSender, TryRecvError};
 use std::{time};
 
 /////
 
 pub struct UdpServerSocket {
-    receive_function: fn(ClientSocket, &str)
+    connect_function: Box<dyn Fn(&ClientSocket)>,
+    receive_function: Box<dyn Fn(&ClientSocket, &str)>,
 }
 
 impl ServerSocket for UdpServerSocket {
@@ -21,7 +22,8 @@ impl ServerSocket for UdpServerSocket {
         println!("Hello UdpServerSocket!");
 
         let new_server_socket = UdpServerSocket {
-            receive_function: |client_socket, msg| { println!("default. Received {:?} from {:?}", msg, client_socket.ip); }
+            connect_function: Box::new(|client_socket| { println!("default. Connected!"); }),
+            receive_function: Box::new(|client_socket, msg| { println!("default. Received {:?}", msg); })
         };
 
         new_server_socket
@@ -47,14 +49,36 @@ impl ServerSocket for UdpServerSocket {
                                 "server-handshake-response".as_bytes().to_vec(),
                             ))
                             .expect("This should send");
+
+                        let cloned_sender = sender.clone();
+                        let client_socket = ClientSocket::new(address.ip(), move |msg| {
+                            let msg_string: String = msg.to_string();
+                            let packet = LaminarPacket::reliable_unordered(
+                                address,
+                                msg_string.clone().into_bytes()
+                            );
+                            cloned_sender.send(packet);
+                        });
+
+                        (self.connect_function)(&client_socket);
                     }
                     SocketEvent::Packet(packet) => {
-                        let msg1 = packet.payload();
+                        let packet_payload = packet.payload();
+                        let packet_addr = packet.addr();
+                        let packet_ip = packet_addr.ip();
+                        let msg = String::from_utf8_lossy(packet_payload);
 
-                        let msg = String::from_utf8_lossy(msg1);
-                        let ip = packet.addr().ip();
+                        let cloned_sender = sender.clone();
+                        let client_socket = ClientSocket::new(packet_ip, move |msg| {
+                            let msg_string: String = msg.to_string();
+                            let packet = LaminarPacket::reliable_unordered(
+                                packet_addr,
+                                msg_string.clone().into_bytes()
+                            );
+                            cloned_sender.send(packet);
+                        });
 
-                        (self.receive_function)(ClientSocket { ip }, &msg);
+                        (self.receive_function)(&client_socket, &msg);
                     }
                     SocketEvent::Timeout(address) => {
                         println!("Client disconnected: {}", address);
@@ -64,16 +88,16 @@ impl ServerSocket for UdpServerSocket {
         }
     }
 
-    fn on_connection(&self, func: fn(ClientSocket)){
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
+        self.connect_function = Box::new(func);
+    }
+
+    fn on_disconnection(&self, func: fn()) {
 
     }
 
-    fn on_disconnection(&self, func: fn(ClientSocket)) {
-
-    }
-
-    fn on_receive(&mut self, func: fn(ClientSocket, &str)) {
-        self.receive_function = func;
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
+        self.receive_function = Box::new(func);
     }
 
     fn on_error(&self, func: fn(&str)) {

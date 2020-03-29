@@ -8,11 +8,11 @@ pub trait ServerSocket {
 
     fn listen(&self, address: &str);
 
-    fn on_connection(&self, func: fn(ClientSocket));
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static);
 
-    fn on_disconnection(&self, func: fn(ClientSocket));
+    fn on_disconnection(&self, func: fn());
 
-    fn on_receive(&mut self, func: fn(ClientSocket, &str));
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
 
     fn on_error(&self, func: fn(&str));
 }
