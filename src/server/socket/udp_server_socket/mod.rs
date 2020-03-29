@@ -37,28 +37,36 @@ impl ServerSocket for UdpServerSocket {
 
         let _thread = thread::spawn(move || socket.start_polling());
 
+        let sender_func_factory = |packet_addr, sender: ChannelSender<LaminarPacket>| {
+          let output = move |msg: &str| {
+              let msg_string: String = msg.to_string();
+              let packet = LaminarPacket::reliable_unordered(
+                  packet_addr,
+                  msg_string.clone().into_bytes()
+              );
+              sender.send(packet);
+          };
+
+          output
+        };
+
         loop {
             if let Ok(event) = receiver.recv() {
                 match event {
-                    SocketEvent::Connect(address) => {
-                        println!("Client connected: {}", address);
+                    SocketEvent::Connect(packet_addr) => {
+                        println!("Client connected: {}", packet_addr);
 
                         sender
                             .send(LaminarPacket::reliable_unordered(
-                                address,
+                                packet_addr,
                                 "server-handshake-response".as_bytes().to_vec(),
                             ))
                             .expect("This should send");
 
-                        let cloned_sender = sender.clone();
-                        let client_socket = ClientSocket::new(address.ip(), move |msg| {
-                            let msg_string: String = msg.to_string();
-                            let packet = LaminarPacket::reliable_unordered(
-                                address,
-                                msg_string.clone().into_bytes()
-                            );
-                            cloned_sender.send(packet);
-                        });
+                        let packet_ip = packet_addr.ip();
+                        let client_socket = ClientSocket::new(
+                            packet_ip,
+                            sender_func_factory(packet_addr, sender.clone()));
 
                         (self.connect_function)(&client_socket);
                     }
@@ -68,15 +76,9 @@ impl ServerSocket for UdpServerSocket {
                         let packet_ip = packet_addr.ip();
                         let msg = String::from_utf8_lossy(packet_payload);
 
-                        let cloned_sender = sender.clone();
-                        let client_socket = ClientSocket::new(packet_ip, move |msg| {
-                            let msg_string: String = msg.to_string();
-                            let packet = LaminarPacket::reliable_unordered(
-                                packet_addr,
-                                msg_string.clone().into_bytes()
-                            );
-                            cloned_sender.send(packet);
-                        });
+                        let client_socket = ClientSocket::new(
+                            packet_ip,
+                            sender_func_factory(packet_addr, sender.clone()));
 
                         (self.receive_function)(&client_socket, &msg);
                     }

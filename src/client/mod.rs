@@ -11,22 +11,15 @@ pub struct Client {
 impl Client {
     pub fn new() -> Client {
 
-        println!("Client New!");
 
         let mut client_socket = ClientSocketImpl::new();
 
         client_socket.on_connection(|sender| {
             println!("Client on_connection()");
-
-//            let msg: String = "hello server!".to_string();
-//            sender.send(msg.as_str());
         });
 
         client_socket.on_receive(|sender, msg| {
             println!("Client on_receive(): {:?}", msg);
-
-            //let response_msg = msg.to_owned() + "|";
-            //sender.send(response_msg.as_str());
         });
 
         client_socket.connect(SERVER_ADDR);
