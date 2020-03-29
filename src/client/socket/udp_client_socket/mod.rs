@@ -1,5 +1,6 @@
 use crate::Result;
-use crate::client::socket::{Sender, ClientSocket};
+use crate::client::socket::{ClientSocket};
+use super::server_socket::ServerSocket;
 
 use std::io::stdin;
 use std::thread;
@@ -11,27 +12,9 @@ use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
 use std::{time};
 
-struct ClientSender {
-    send_function: Box<dyn Fn(&str)>
-}
-
-impl ClientSender {
-    fn new(func: impl Fn(&str) + 'static) -> ClientSender {
-        ClientSender {
-            send_function: Box::new(func)
-        }
-    }
-}
-
-impl Sender for ClientSender {
-    fn send(&self, msg: &str) {
-        (self.send_function)(msg);
-    }
-}
-
 pub struct UdpClientSocket {
-    connect_function: Box<dyn Fn(&Sender)>,
-    receive_function: Box<dyn Fn(&Sender, &str)>,
+    connect_function: Box<dyn Fn(&ServerSocket)>,
+    receive_function: Box<dyn Fn(&ServerSocket, &str)>,
     disconnect_function: Box<dyn Fn()>,
 }
 
@@ -40,8 +23,8 @@ impl ClientSocket for UdpClientSocket {
         println!("Hello UdpClientSocket!");
 
         let new_client_socket = UdpClientSocket {
-            connect_function: Box::new(|sender| { println!("default. Connected!"); }),
-            receive_function: Box::new(|sender, msg| { println!("default. Received {:?}", msg); }),
+            connect_function: Box::new(|server_socket| { println!("default. Connected!"); }),
+            receive_function: Box::new(|server_socket, msg| { println!("default. Received {:?}", msg); }),
             disconnect_function: Box::new(|| { println!("default. Disconnected :("); })
         };
 
@@ -59,12 +42,12 @@ impl ClientSocket for UdpClientSocket {
         let sender: ChannelSender<LaminarPacket> = socket.get_packet_sender();
 
         let receiver: ChannelReceiver<SocketEvent> = socket.get_event_receiver();
-        let _thread = thread::spawn(move || socket.start_polling());
+        let poll_thread = thread::spawn(move || socket.start_polling());
 
         //Trying to wrap the crossbeam ChannelSender struct into my own ClientSender trait...
         let cloned_server: SocketAddr = server.clone();
         let cloned_sender = sender.clone();
-        let new_sender: ClientSender = ClientSender::new(move |msg| {
+        let server_socket: ServerSocket = ServerSocket::new(move |msg| {
             let msg_string: String = msg.to_string();
             let packet = LaminarPacket::reliable_unordered(
                 cloned_server,
@@ -99,10 +82,10 @@ impl ClientSocket for UdpClientSocket {
 
                             let server_handshake_str = "server-handshake-response".to_string();
                             if msg.eq(server_handshake_str.as_str()) {
-                                (self.connect_function)(&new_sender);
+                                (self.connect_function)(&server_socket);
                             }
                             else {
-                                (self.receive_function)(&new_sender, &msg);
+                                (self.receive_function)(&server_socket, &msg);
                             }
                         } else {
                             println!("Unknown sender.");
@@ -120,15 +103,11 @@ impl ClientSocket for UdpClientSocket {
 
     }
 
-    fn disconnect(&self) {
-
-    }
-
-    fn on_connection(&mut self, func: impl Fn(&Sender) + 'static) {
+    fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static) {
         self.connect_function = Box::new(func);
     }
 
-    fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static) {
+    fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static) {
         self.receive_function = Box::new(func);
     }
 

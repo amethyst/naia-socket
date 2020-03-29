@@ -17,18 +17,18 @@ impl Server {
 
         let mut server_socket = ServerSocketImpl::new();
 
-        server_socket.on_connection(|sender| {
+        server_socket.on_connection(|client_socket| {
             println!("Server on_connection()");
 
             let msg: String = "hello new client!".to_string();
-            sender.send(msg.as_str());
+            client_socket.send(msg.as_str());
         });
 
-        server_socket.on_receive(|sender, msg| {
+        server_socket.on_receive(|client_socket, msg| {
             println!("Server on_receive(): {:?}", msg);
 
             let response_msg = "echo from server: ".to_owned() + msg;
-            sender.send(response_msg.as_str());
+            client_socket.send(response_msg.as_str());
         });
 
         server_socket.on_disconnection(|client_address| {

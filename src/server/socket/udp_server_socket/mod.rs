@@ -97,11 +97,11 @@ impl ServerSocket for UdpServerSocket {
         self.connect_function = Box::new(func);
     }
 
-    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
-        self.disconnect_function = Box::new(func);
-    }
-
     fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
         self.receive_function = Box::new(func);
+    }
+
+    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
+        self.disconnect_function = Box::new(func);
     }
 }
