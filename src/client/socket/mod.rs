@@ -9,15 +9,15 @@ pub trait ClientSocket {
 
     fn connect(&self, address: &str);
 
-    fn disconnect(&self);
-
     fn send(&self, msg: &str);
+
+    fn disconnect(&self);
 
     fn on_connection(&mut self, func: impl Fn(&Sender) + 'static);
 
-    fn on_disconnection(&self, func: fn());
-
     fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static);
+
+    fn on_disconnection(&mut self, func: impl Fn() + 'static);
 }
 
 /// UDP Client ///

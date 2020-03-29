@@ -32,7 +32,7 @@ impl Server {
         });
 
         server_socket.on_disconnection(|client_address| {
-            println!("Server on_disconnect(): {:?}", client_address);
+            println!("Server on_disconnection(): {:?}", client_address);
         });
 
         server_socket.listen(SERVER_ADDR);

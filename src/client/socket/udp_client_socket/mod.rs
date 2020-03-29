@@ -32,6 +32,7 @@ impl Sender for ClientSender {
 pub struct UdpClientSocket {
     connect_function: Box<dyn Fn(&Sender)>,
     receive_function: Box<dyn Fn(&Sender, &str)>,
+    disconnect_function: Box<dyn Fn()>,
 }
 
 impl ClientSocket for UdpClientSocket {
@@ -40,7 +41,8 @@ impl ClientSocket for UdpClientSocket {
 
         let new_client_socket = UdpClientSocket {
             connect_function: Box::new(|sender| { println!("default. Connected!"); }),
-            receive_function: Box::new(|sender, msg| { println!("default. Received {:?}", msg); })
+            receive_function: Box::new(|sender, msg| { println!("default. Received {:?}", msg); }),
+            disconnect_function: Box::new(|| { println!("default. Disconnected :("); })
         };
 
         new_client_socket
@@ -107,30 +109,30 @@ impl ClientSocket for UdpClientSocket {
                         }
                     }
                     SocketEvent::Timeout(address) => {
-                        println!("Server disconnected..");
+                        (self.disconnect_function)();
                     }
                 }
             }
         }
     }
 
-    fn on_connection(&mut self, func: impl Fn(&Sender) + 'static) {
-        self.connect_function = Box::new(func);
-    }
+    fn send(&self, msg: &str) {
 
-    fn on_disconnection(&self, func: fn()) {
-
-    }
-
-    fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static) {
-        self.receive_function = Box::new(func);
     }
 
     fn disconnect(&self) {
 
     }
 
-    fn send(&self, msg: &str) {
+    fn on_connection(&mut self, func: impl Fn(&Sender) + 'static) {
+        self.connect_function = Box::new(func);
+    }
 
+    fn on_receive(&mut self, func: impl Fn(&Sender, &str) + 'static) {
+        self.receive_function = Box::new(func);
+    }
+
+    fn on_disconnection(&mut self, func: impl Fn() + 'static) {
+        self.disconnect_function = Box::new(func);
     }
 }

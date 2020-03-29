@@ -21,6 +21,10 @@ impl Client {
             println!("Client on_receive(): {:?}", msg);
         });
 
+        client_socket.on_disconnection(|| {
+            println!("Client on_disconnection()");
+        });
+
         client_socket.connect(SERVER_ADDR);
 
         Client {
