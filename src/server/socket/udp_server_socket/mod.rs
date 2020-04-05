@@ -14,9 +14,9 @@ use std::net::IpAddr;
 /////
 
 pub struct UdpServerSocket {
-    connect_function: Box<dyn Fn(&ClientSocket)>,
-    receive_function: Box<dyn Fn(&ClientSocket, &str)>,
-    disconnect_function: Box<dyn Fn(IpAddr)>,
+    connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
+    receive_function: Option<Box<dyn Fn(&ClientSocket, &str)>>,
+    disconnect_function: Option<Box<dyn Fn(IpAddr)>>,
 }
 
 impl ServerSocket for UdpServerSocket {
@@ -24,9 +24,9 @@ impl ServerSocket for UdpServerSocket {
         println!("Hello UdpServerSocket!");
 
         let new_server_socket = UdpServerSocket {
-            connect_function: Box::new(|client_socket| { println!("default. Connected!"); }),
-            receive_function: Box::new(|client_socket, msg| { println!("default. Received {:?}", msg); }),
-            disconnect_function: Box::new(|ip_address| { println!("default. Disconnected {:?}", ip_address); })
+            connect_function: None,
+            receive_function: None,
+            disconnect_function: None
         };
 
         new_server_socket
@@ -71,7 +71,7 @@ impl ServerSocket for UdpServerSocket {
                             packet_ip,
                             sender_func_factory(packet_addr, sender.clone()));
 
-                        (self.connect_function)(&client_socket);
+                        (self.connect_function.as_ref().unwrap())(&client_socket);
                     }
                     SocketEvent::Packet(packet) => {
                         let packet_payload = packet.payload();
@@ -83,10 +83,10 @@ impl ServerSocket for UdpServerSocket {
                             packet_ip,
                             sender_func_factory(packet_addr, sender.clone()));
 
-                        (self.receive_function)(&client_socket, &msg);
+                        (self.receive_function.as_ref().unwrap())(&client_socket, &msg);
                     }
                     SocketEvent::Timeout(address) => {
-                        (self.disconnect_function)(address.ip());
+                        (self.disconnect_function.as_ref().unwrap())(address.ip());
                     }
                 }
             }
@@ -94,14 +94,14 @@ impl ServerSocket for UdpServerSocket {
     }
 
     fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
-        self.connect_function = Box::new(func);
+        self.connect_function = Some(Box::new(func));
     }
 
     fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
-        self.receive_function = Box::new(func);
+        self.receive_function = Some(Box::new(func));
     }
 
     fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
-        self.disconnect_function = Box::new(func);
+        self.disconnect_function = Some(Box::new(func));
     }
 }
