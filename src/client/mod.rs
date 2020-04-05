@@ -2,7 +2,7 @@
 mod socket;
 use crate::client::socket::{ClientSocket, ClientSocketImpl};
 
-const SERVER_ADDR: &str = "127.0.0.1:12351";
+const SERVER_ADDR: &str = "192.168.1.9:12351";
 
 pub struct Client {
     socket: ClientSocketImpl
