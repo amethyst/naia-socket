@@ -1,7 +1,7 @@
 use crate::Result;
 use crate::server::socket::ServerSocket;
 use super::client_socket::ClientSocket;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 
 use futures::{
     future::{self, Either, IntoFuture},
@@ -21,6 +21,8 @@ use webrtc_unreliable::{
     MessageResult as RtcMessageResult, RecvError as RtcRecvError, SendError as RtcSendError,
     Server as RtcServer,
 };
+
+use std::net::TcpListener;
 
 pub struct WebrtcServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
@@ -47,15 +49,14 @@ impl ServerSocket for WebrtcServerSocket {
 
         let mut runtime = Runtime::new().expect("could not build tokio runtime");
 
-        let webrtc_listen_str = "192.168.1.9:3173";
-        let webrtc_listen_addr = webrtc_listen_str
-            .parse()
-            .expect("could not parse WebRTC data address/port");
-
-        let session_listen_str = "192.168.1.9:3174";
-        let session_listen_addr = session_listen_str
+        let session_listen_addr: SocketAddr = address
             .parse()
             .expect("could not parse HTTP address/port");
+
+        let webrtc_listen_ip: IpAddr = session_listen_addr.ip();
+        let webrtc_listen_port = get_available_port(webrtc_listen_ip.to_string().as_str())
+            .expect("no available port");
+        let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
         let mut rtc_server =  RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).expect("could not start RTC server");
         let mut message_buf = vec![0; 0x10000];
@@ -161,5 +162,17 @@ impl ServerSocket for WebrtcServerSocket {
 
     fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
         self.disconnect_function = Some(Box::new(func));
+    }
+}
+
+fn get_available_port(ip: &str) -> Option<u16> {
+    (8000..9000)
+        .find(|port| port_is_available(ip, *port))
+}
+
+fn port_is_available(ip: &str, port: u16) -> bool {
+    match TcpListener::bind((ip, port)) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
