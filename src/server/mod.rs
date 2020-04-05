@@ -3,7 +3,6 @@ mod socket;
 
 use crate::server::socket::{ServerSocket, ServerSocketImpl};
 use std::net::SocketAddr;
-use crate::shared::GaiaMessage;
 const SERVER_ADDR: &str = "192.168.1.9:12351";
 
 pub struct Server {

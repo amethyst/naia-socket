@@ -1,7 +1,6 @@
 
 mod client_socket;
 use client_socket::ClientSocket;
-use crate::Result;
 use std::net::IpAddr;
 
 pub trait ServerSocket {

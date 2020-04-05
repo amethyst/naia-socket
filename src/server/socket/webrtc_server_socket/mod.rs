@@ -1,7 +1,7 @@
-use crate::Result;
 use crate::server::socket::ServerSocket;
 use super::client_socket::ClientSocket;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::str;
 
 use futures::{
     future::{self, Either, IntoFuture},
@@ -23,11 +23,19 @@ use webrtc_unreliable::{
 };
 
 use std::net::TcpListener;
+use crate::server::socket::webrtc_server_socket::webrtc_unreliable::MessageResult;
+use std::borrow::Borrow;
+use std::sync::mpsc::channel;
 
 pub struct WebrtcServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
     receive_function: Option<Box<dyn Fn(&ClientSocket, &str)>>,
     disconnect_function: Option<Box<dyn Fn(IpAddr)>>,
+}
+
+struct ClientSocketMessage {
+    ip_address: IpAddr,
+    message: String
 }
 
 impl ServerSocket for WebrtcServerSocket {
@@ -114,33 +122,43 @@ impl ServerSocket for WebrtcServerSocket {
                 .map_err(|e| panic!("HTTP session server has died! {}", e)),
         ));
 
+        let (rtc_sender, rtc_receiver) = channel();
+
         runtime.spawn(Box::new(future::poll_fn(move || loop {
             match received_message.take() {
                 Some(received) => {
-                    match rtc_server.poll_send(
-                        &message_buf[0..received.message_len],
-                        received.message_type,
-                        &received.remote_addr,
-                    ) {
-                        Ok(Async::Ready(())) => {
-
-                        }
-                        Ok(Async::NotReady) => {
-                            received_message = Some(received);
-                            return Ok(Async::NotReady);
-                        }
-                        Err(RtcSendError::Internal(err)) => {
-                            panic!("internal WebRTC server error: {}", err)
-                        }
-                        Err(err) => warn!(
-                            "could not send message to {}: {}",
-                            received.remote_addr, err
-                        ),
-                    }
+//                    match rtc_server.poll_send(
+//                        &message_buf[0..received.message_len],
+//                        received.message_type,
+//                        &received.remote_addr,
+//                    ) {
+//                        Ok(Async::Ready(())) => {
+//
+//                        }
+//                        Ok(Async::NotReady) => {
+//                            received_message = Some(received);
+//                            return Ok(Async::NotReady);
+//                        }
+//                        Err(RtcSendError::Internal(err)) => {
+//                            panic!("internal WebRTC server error: {}", err)
+//                        }
+//                        Err(err) => warn!(
+//                            "could not send message to {}: {}",
+//                            received.remote_addr, err
+//                        ),
+//                    }
                 }
                 None => match rtc_server.poll_recv(&mut message_buf) {
                     Ok(Async::Ready(incoming_message)) => {
-                        received_message = Some(incoming_message);
+                        let msg_str: &str = str::from_utf8(&message_buf[0..incoming_message.message_len])
+                            .expect("cannot convert incoming message to string");
+
+                        let total_package = ClientSocketMessage {
+                            ip_address: incoming_message.remote_addr.ip(),
+                            message: String::from(msg_str)
+                        };
+
+                        rtc_sender.send(total_package);
                     }
                     Ok(Async::NotReady) => return Ok(Async::NotReady),
                     Err(RtcRecvError::Internal(err)) => panic!("internal WebRTC server error: {}", err),
@@ -148,6 +166,25 @@ impl ServerSocket for WebrtcServerSocket {
                 },
             }
         })));
+
+        loop {
+            match rtc_receiver.recv() {
+                Ok(incoming_message) => {
+                    let send_func = move |msg: &str| {
+                        info!("this should send to client {}", msg);
+                    };
+
+                    let client_socket = ClientSocket::new(
+                        incoming_message.ip_address,
+                        send_func);
+
+                    (self.receive_function.as_ref().unwrap())(&client_socket, &incoming_message.message);
+                }
+                Err(_) => {
+                    warn!("main receive loop error")
+                }
+            }
+        }
 
         runtime.shutdown_on_idle().wait().unwrap();
     }
