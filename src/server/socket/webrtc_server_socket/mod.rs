@@ -1,38 +1,41 @@
 use crate::Result;
 use crate::server::socket::ServerSocket;
 pub use crate::user::User;
+use super::client_socket::ClientSocket;
+use std::net::IpAddr;
 
 pub struct WebrtcServerSocket {
-
+    connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
+    receive_function: Option<Box<dyn Fn(&ClientSocket, &str)>>,
+    disconnect_function: Option<Box<dyn Fn(IpAddr)>>,
 }
 
 impl ServerSocket for WebrtcServerSocket {
-    fn new() -> Result<WebrtcServerSocket> {
+    fn new() -> WebrtcServerSocket {
         println!("Hello WebrtcServerSocket!");
-        Ok(WebrtcServerSocket {})
-    }
 
-    fn on_connection(&self, func: fn(User)){
+        let new_server_socket = WebrtcServerSocket {
+            connect_function: None,
+            receive_function: None,
+            disconnect_function: None
+        };
 
-    }
-
-    fn on_disconnection(&self, func: fn(User)) {
-
-    }
-
-    fn on_receive(&self, func: fn(User, &str)) {
-
-    }
-
-    fn on_error(&self, func: fn(&str)) {
-
+        new_server_socket
     }
 
     fn listen(&self, address: &str) {
 
     }
 
-    fn update(&self) {
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
+        self.connect_function = Some(Box::new(func));
+    }
 
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
+        self.receive_function = Some(Box::new(func));
+    }
+
+    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
+        self.disconnect_function = Some(Box::new(func));
     }
 }
