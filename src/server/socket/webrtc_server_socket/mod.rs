@@ -20,12 +20,13 @@ mod webrtc_unreliable;
 use webrtc_unreliable::{
     MessageResult as RtcMessageResult, RecvError as RtcRecvError, SendError as RtcSendError,
     Server as RtcServer,
+    MessageType
 };
 
 use std::net::TcpListener;
 use crate::server::socket::webrtc_server_socket::webrtc_unreliable::MessageResult;
 use std::borrow::Borrow;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Sender, Receiver};
 
 pub struct WebrtcServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
@@ -34,7 +35,7 @@ pub struct WebrtcServerSocket {
 }
 
 struct ClientSocketMessage {
-    ip_address: IpAddr,
+    ip_address: SocketAddr,
     message: String
 }
 
@@ -67,10 +68,10 @@ impl ServerSocket for WebrtcServerSocket {
         let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
         let mut rtc_server =  RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).expect("could not start RTC server");
-        let mut message_buf = vec![0; 0x10000];
-        let mut received_message: Option<RtcMessageResult> = None;
 
+        /// Start of HTTP Listener ///
         let session_endpoint = rtc_server.session_endpoint();
+
         runtime.spawn(Box::new(
             Server::bind(&session_listen_addr)
                 .serve(make_service_fn(move |addr_stream: &AddrStream| {
@@ -122,69 +123,92 @@ impl ServerSocket for WebrtcServerSocket {
                 .map_err(|e| panic!("HTTP session server has died! {}", e)),
         ));
 
-        let (rtc_sender, rtc_receiver) = channel();
+        /// End of HTTP Listener ///
+
+        /// Start of WebRtc Listener ///
+
+        let mut message_buf = vec![0; 0x10000];
+
+        let (rtc_receive_sender, rtc_receive_receiver) = channel();
+        let (rtc_send_sender, rtc_send_receiver): (Sender<ClientSocketMessage>, Receiver<ClientSocketMessage>) = channel();
 
         runtime.spawn(Box::new(future::poll_fn(move || loop {
-            match received_message.take() {
-                Some(received) => {
-//                    match rtc_server.poll_send(
-//                        &message_buf[0..received.message_len],
-//                        received.message_type,
-//                        &received.remote_addr,
-//                    ) {
-//                        Ok(Async::Ready(())) => {
-//
-//                        }
-//                        Ok(Async::NotReady) => {
-//                            received_message = Some(received);
-//                            return Ok(Async::NotReady);
-//                        }
-//                        Err(RtcSendError::Internal(err)) => {
-//                            panic!("internal WebRTC server error: {}", err)
-//                        }
-//                        Err(err) => warn!(
-//                            "could not send message to {}: {}",
-//                            received.remote_addr, err
-//                        ),
-//                    }
+
+            match rtc_server.poll_recv(&mut message_buf) {
+                Ok(Async::Ready(incoming_message)) => {
+                    let msg_str: &str = str::from_utf8(&message_buf[0..incoming_message.message_len])
+                        .expect("cannot convert incoming message to string");
+
+                    let total_package = ClientSocketMessage {
+                        ip_address: incoming_message.remote_addr,
+                        message: String::from(msg_str)
+                    };
+
+                    rtc_receive_sender.send(total_package);
                 }
-                None => match rtc_server.poll_recv(&mut message_buf) {
-                    Ok(Async::Ready(incoming_message)) => {
-                        let msg_str: &str = str::from_utf8(&message_buf[0..incoming_message.message_len])
-                            .expect("cannot convert incoming message to string");
+                Ok(Async::NotReady) => return Ok(Async::NotReady),
+                Err(RtcRecvError::Internal(err)) => panic!("internal WebRTC server error: {}", err),
+                Err(err) => warn!("could not receive RTC message: {}", err),
+            }
 
-                        let total_package = ClientSocketMessage {
-                            ip_address: incoming_message.remote_addr.ip(),
-                            message: String::from(msg_str)
-                        };
+            match rtc_send_receiver.recv() {
+                Ok(incoming_message) => {
 
-                        rtc_sender.send(total_package);
+                    let outgoing_message: &[u8] = incoming_message.message.as_bytes();
+
+                    match rtc_server.poll_send(
+                        outgoing_message,
+                        MessageType::Text,
+                        &incoming_message.ip_address) {
+                            Ok(Async::Ready(())) => {}
+                            Ok(Async::NotReady) => {
+                                return Ok(Async::NotReady);
+                            }
+                            Err(RtcSendError::Internal(err)) => {
+                                panic!("internal WebRTC server error: {}", err)
+                            }
+                            Err(err) => warn!(
+                                "could not send message to {}: {}",
+                                incoming_message.ip_address, err
+                            ),
                     }
-                    Ok(Async::NotReady) => return Ok(Async::NotReady),
-                    Err(RtcRecvError::Internal(err)) => panic!("internal WebRTC server error: {}", err),
-                    Err(err) => warn!("could not receive RTC message: {}", err),
-                },
+                }
+                Err(_) => {
+                    warn!("main send_receive loop error")
+                }
             }
         })));
 
+        /// End of WebRtc Listener ///
+
+        /// Start of Blocking Loop to send/receive with WebRtc thread ///
+
         loop {
-            match rtc_receiver.recv() {
+            match rtc_receive_receiver.recv() {
                 Ok(incoming_message) => {
+                    let ip_address = incoming_message.ip_address;
+                    let rtc_send_sender_copy = rtc_send_sender.clone();
                     let send_func = move |msg: &str| {
-                        info!("this should send to client {}", msg);
+                        let total_package = ClientSocketMessage {
+                            ip_address,
+                            message: String::from(msg)
+                        };
+                        rtc_send_sender_copy.send(total_package);
                     };
 
                     let client_socket = ClientSocket::new(
-                        incoming_message.ip_address,
+                        ip_address.ip(),
                         send_func);
 
                     (self.receive_function.as_ref().unwrap())(&client_socket, &incoming_message.message);
                 }
                 Err(_) => {
-                    warn!("main receive loop error")
+                    warn!("main receive_receive loop error")
                 }
             }
         }
+
+        /// End of Blocking Loop to send/receive with WebRtc thread ///
 
         runtime.shutdown_on_idle().wait().unwrap();
     }
