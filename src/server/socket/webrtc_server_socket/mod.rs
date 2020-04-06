@@ -26,7 +26,7 @@ use webrtc_unreliable::{
 use std::net::TcpListener;
 use crate::server::socket::webrtc_server_socket::webrtc_unreliable::MessageResult;
 use std::borrow::Borrow;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use crossbeam::crossbeam_channel::{bounded, Sender, Receiver};
 
 pub struct WebrtcServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
@@ -67,7 +67,7 @@ impl ServerSocket for WebrtcServerSocket {
             .expect("no available port");
         let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
-        let (rtc_connect_sender, rtc_connect_receiver): (Sender<SocketAddr>, Receiver<SocketAddr>) = channel();
+        let (rtc_connect_sender, rtc_connect_receiver): (Sender<SocketAddr>, Receiver<SocketAddr>) = bounded(100);
         let mut rtc_server =  RtcServer::new(webrtc_listen_addr, webrtc_listen_addr, rtc_connect_sender)
             .expect("could not start RTC server");
 
@@ -129,8 +129,8 @@ impl ServerSocket for WebrtcServerSocket {
 
         /// Start of WebRtc Listener ///
 
-        let (rtc_receive_sender, rtc_receive_receiver) = channel();
-        let (rtc_send_sender, rtc_send_receiver): (Sender<ClientSocketMessage>, Receiver<ClientSocketMessage>) = channel();
+        let (rtc_receive_sender, rtc_receive_receiver) = bounded(100);
+        let (rtc_send_sender, rtc_send_receiver): (Sender<ClientSocketMessage>, Receiver<ClientSocketMessage>) = bounded(100);
 
         let mut message_buf = vec![0; 0x10000];
         let mut webrtc_sending: bool = true;

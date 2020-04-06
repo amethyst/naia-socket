@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 use futures::{sync::mpsc, try_ready, Async, Future, Poll, Sink, Stream};
@@ -22,6 +23,8 @@ use super::crypto::Crypto;
 use super::sdp::{gen_sdp_response, parse_sdp_fields, SdpFields};
 use super::stun::{parse_stun_binding_request, write_stun_success_response};
 use super::util::rand_string;
+
+use crossbeam::crossbeam_channel::{Sender as CrossbeamSender};
 
 #[derive(Debug)]
 pub enum SendError {
@@ -206,7 +209,7 @@ pub struct Server {
     last_generate_periodic: Instant,
     last_cleanup: Instant,
     periodic_timer: Interval,
-    connect_sender: Sender<SocketAddr>,
+    connect_sender: CrossbeamSender<SocketAddr>,
 }
 
 impl Server {
@@ -215,7 +218,7 @@ impl Server {
     ///
     /// WebRTC connections must be started via an external communication channel from a browser via
     /// the `SessionEndpoint`, after which a WebRTC data channel can be opened.
-    pub fn new(listen_addr: SocketAddr, public_addr: SocketAddr, connect_sender: Sender<SocketAddr>) -> Result<Server, InternalError> {
+    pub fn new(listen_addr: SocketAddr, public_addr: SocketAddr, connect_sender: CrossbeamSender<SocketAddr>) -> Result<Server, InternalError> {
         const SESSION_BUFFER_SIZE: usize = 8;
 
         let crypto = Crypto::init().expect("WebRTC server could not initialize OpenSSL primitives");

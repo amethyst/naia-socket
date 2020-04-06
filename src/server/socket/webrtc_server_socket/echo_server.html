@@ -31,7 +31,7 @@
                     packet_number++
                     console.log("sending packet", packet_number);
                     channel.send(packet_number);
-                    send_times[packet_number] = Date.now();
+                    send_times[packet_number] = performance.now();
                 }
             }, SEND_INTERVAL);
 
@@ -39,7 +39,7 @@
                 console.log(
                     "received packet",
                     evt.data,
-                    "in " + (Date.now() - send_times[Number(evt.data)]) + " ms"
+                    "in " + (performance.now() - send_times[Number(evt.data)]) + " ms"
                 );
             };
         };

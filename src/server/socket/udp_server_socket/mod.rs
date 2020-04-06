@@ -6,7 +6,7 @@ use std::thread;
 use std::time::Instant;
 
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
-use crossbeam_channel::{self, unbounded, Receiver as ChannelReceiver, SendError, Sender as ChannelSender, TryRecvError};
+use crossbeam_channel::{Sender as ChannelSender};
 use std::{time};
 use std::net::IpAddr;
 
