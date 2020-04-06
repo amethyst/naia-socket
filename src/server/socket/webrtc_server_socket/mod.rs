@@ -138,32 +138,39 @@ impl ServerSocket for WebrtcServerSocket {
 
             match webrtc_sending {
                 true => {
-                    webrtc_sending = false;
                     match rtc_send_receiver.try_recv() {
                         Ok(incoming_message) => {
 
                             let outgoing_message: &[u8] = incoming_message.message.as_bytes();
 
-                            match rtc_server.poll_send(
-                                outgoing_message,
-                                MessageType::Text,
-                                &incoming_message.ip_address) {
-                                Ok(Async::Ready(())) => {}
-                                Ok(Async::NotReady) => {
-                                    webrtc_sending = true;
-                                    return Ok(Async::NotReady);
+                            loop {
+                                match rtc_server.poll_send(
+                                    outgoing_message,
+                                    MessageType::Text,
+                                    &incoming_message.ip_address) {
+                                    Ok(Async::Ready(())) => {
+                                        break;
+                                    }
+                                    Ok(Async::NotReady) => {
+                                        return Ok(Async::NotReady);
+                                    }
+                                    Err(RtcSendError::Internal(err)) => {
+                                        panic!("internal WebRTC server error: {}", err);
+                                        break;
+                                    }
+                                    Err(err) => {
+                                        warn!(
+                                            "could not send message to {}: {}",
+                                            incoming_message.ip_address, err
+                                        );
+                                        break;
+                                    },
                                 }
-                                Err(RtcSendError::Internal(err)) => {
-                                    panic!("internal WebRTC server error: {}", err)
-                                }
-                                Err(err) => warn!(
-                                    "could not send message to {}: {}",
-                                    incoming_message.ip_address, err
-                                ),
                             }
                         }
-                        Err(_) => {
+                        Err(Empty) => {
                             //warn!("main send_receive loop error")
+                            webrtc_sending = false;
                         }
                     }
                 },

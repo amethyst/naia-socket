@@ -26,7 +26,7 @@
                 if (packet_number == NUM_PACKETS) {
                     clearInterval(cancel);
                     console.log("closing connection");
-                    peer.close();
+                    //peer.close();
                 } else {
                     packet_number++
                     console.log("sending packet", packet_number);
