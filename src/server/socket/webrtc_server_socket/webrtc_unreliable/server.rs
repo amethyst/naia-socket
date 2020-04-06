@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use std::sync::mpsc::{channel, Sender, Receiver};
 
 use futures::{sync::mpsc, try_ready, Async, Future, Poll, Sink, Stream};
 use http::{header, Response};
@@ -205,6 +206,7 @@ pub struct Server {
     last_generate_periodic: Instant,
     last_cleanup: Instant,
     periodic_timer: Interval,
+    connect_sender: Sender<SocketAddr>,
 }
 
 impl Server {
@@ -213,7 +215,7 @@ impl Server {
     ///
     /// WebRTC connections must be started via an external communication channel from a browser via
     /// the `SessionEndpoint`, after which a WebRTC data channel can be opened.
-    pub fn new(listen_addr: SocketAddr, public_addr: SocketAddr) -> Result<Server, InternalError> {
+    pub fn new(listen_addr: SocketAddr, public_addr: SocketAddr, connect_sender: Sender<SocketAddr>) -> Result<Server, InternalError> {
         const SESSION_BUFFER_SIZE: usize = 8;
 
         let crypto = Crypto::init().expect("WebRTC server could not initialize OpenSSL primitives");
@@ -245,6 +247,7 @@ impl Server {
             last_generate_periodic: Instant::now(),
             last_cleanup: Instant::now(),
             periodic_timer: Interval::new_interval(PERIODIC_TIMER_INTERVAL),
+            connect_sender,
         })
     }
 
@@ -514,6 +517,8 @@ impl Server {
                             Client::new(&self.ssl_acceptor, self.buffer_pool.clone(), remote_addr)
                                 .map_err(|e| InternalError::Other(e.into()))?,
                         );
+
+                        self.connect_sender.send(remote_addr);
                     }
                     HashMapEntry::Occupied(_) => {}
                 }
@@ -556,6 +561,10 @@ impl Server {
         }
         Ok(())
     }
+
+//    fn on_disconnection(&mut self, func: impl Fn(SocketAddr) + Sync + 'static) {
+//        self.disconnect_function = Some(Box::new(func));
+//    }
 }
 
 const RTC_CONNECTION_TIMEOUT: Duration = Duration::from_secs(30);

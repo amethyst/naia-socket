@@ -67,7 +67,9 @@ impl ServerSocket for WebrtcServerSocket {
             .expect("no available port");
         let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
-        let mut rtc_server =  RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).expect("could not start RTC server");
+        let (rtc_connect_sender, rtc_connect_receiver): (Sender<SocketAddr>, Receiver<SocketAddr>) = channel();
+        let mut rtc_server =  RtcServer::new(webrtc_listen_addr, webrtc_listen_addr, rtc_connect_sender)
+            .expect("could not start RTC server");
 
         /// Start of HTTP Listener ///
         let session_endpoint = rtc_server.session_endpoint();
@@ -204,6 +206,28 @@ impl ServerSocket for WebrtcServerSocket {
                 }
                 Err(_) => {
                     warn!("main receive_receive loop error")
+                }
+            }
+
+            match rtc_connect_receiver.recv() {
+                Ok(connect_addr) => {
+                    let rtc_send_sender_copy = rtc_send_sender.clone();
+                    let send_func = move |msg: &str| {
+                        let total_package = ClientSocketMessage {
+                            ip_address: SocketAddr::from(connect_addr),
+                            message: String::from(msg)
+                        };
+                        rtc_send_sender_copy.send(total_package);
+                    };
+
+                    let client_socket = ClientSocket::new(
+                        connect_addr.ip(),
+                        send_func);
+
+                    (self.connect_function.as_ref().unwrap())(&client_socket);
+                }
+                Err(_) => {
+
                 }
             }
         }

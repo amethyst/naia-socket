@@ -17,7 +17,7 @@ impl Server {
         let mut server_socket = ServerSocketImpl::new();
 
         server_socket.on_connection(|client_socket| {
-            println!("Server on_connection()");
+            println!("Server on_connection(), connected to {}", client_socket.ip);
 
             let msg: String = "hello new client!".to_string();
             client_socket.send(msg.as_str());
