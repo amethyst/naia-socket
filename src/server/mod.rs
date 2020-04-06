@@ -25,9 +25,9 @@ impl Server {
 
         server_socket.on_receive(|client_socket, msg| {
             println!("Server on_receive(): {:?}", msg);
-
-            let response_msg = "echo from server: ".to_owned() + msg;
-            client_socket.send(response_msg.as_str());
+            println!("sending: {}", msg);
+            //let response_msg = "echo from server: ".to_owned() + msg;
+            client_socket.send(msg);
         });
 
         server_socket.on_disconnection(|client_address| {
