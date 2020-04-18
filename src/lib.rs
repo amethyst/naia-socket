@@ -3,14 +3,14 @@ mod internal_shared;
 
 pub mod shared;
 
-#[cfg(feature = "Client")]
+#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
 mod client;
 
-#[cfg(feature = "Client")]
+#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
 pub use client::Client as Client;
 
-#[cfg(feature = "Server")]
+#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
 mod server;
 
-#[cfg(feature = "Server")]
+#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
 pub use server::Server as Server;
