@@ -71,6 +71,15 @@ impl ClientSocket for UdpClientSocket {
         self.client_socket.as_mut().unwrap().manual_poll(Instant::now());
     }
 
+    fn send(&mut self, msg: &str) {
+        if self.server_socket.as_ref().unwrap().connected {
+            self.server_socket.as_ref().unwrap().send(msg);
+        }
+        else {
+            self.server_socket.as_mut().unwrap().add_to_send_queue(msg);
+        }
+    }
+
     fn update(&mut self) {
         self.server_socket.as_mut().unwrap().process_send_queue();
 
@@ -110,13 +119,8 @@ impl ClientSocket for UdpClientSocket {
         }
     }
 
-    fn send(&mut self, msg: &str) {
-        if self.server_socket.as_ref().unwrap().connected {
-            self.server_socket.as_ref().unwrap().send(msg);
-        }
-        else {
-            self.server_socket.as_mut().unwrap().add_to_send_queue(msg);
-        }
+    fn disconnect(&self) {
+        unimplemented!()
     }
 
     fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static) {
@@ -125,6 +129,10 @@ impl ClientSocket for UdpClientSocket {
 
     fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static) {
         self.receive_function = Some(Box::new(func));
+    }
+
+    fn on_error(&mut self, func: impl Fn(&ServerSocket, &str)) {
+        unimplemented!()
     }
 
     fn on_disconnection(&mut self, func: impl Fn() + 'static) {

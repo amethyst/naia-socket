@@ -12,7 +12,9 @@ pub trait ServerSocket {
 
     fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
 
-    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static);
+    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
+
+    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static);
 }
 
 /// Proto Linux Server

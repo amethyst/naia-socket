@@ -38,4 +38,12 @@ impl ClientSocket for WebrtcClientSocket {
     fn send<S>(&self, msg: &str) {
 
     }
+
+    fn update(&mut self) {
+        unimplemented!()
+    }
+
+    fn close(&self) {
+        unimplemented!()
+    }
 }

@@ -15,7 +15,7 @@ use std::net::IpAddr;
 pub struct UdpServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
     receive_function: Option<Box<dyn Fn(&ClientSocket, &str)>>,
-    disconnect_function: Option<Box<dyn Fn(IpAddr)>>,
+    disconnect_function: Option<Box<dyn Fn(&ClientSocket)>>,
 }
 
 impl ServerSocket for UdpServerSocket {
@@ -85,7 +85,10 @@ impl ServerSocket for UdpServerSocket {
                         (self.receive_function.as_ref().unwrap())(&client_socket, &msg);
                     }
                     SocketEvent::Timeout(address) => {
-                        (self.disconnect_function.as_ref().unwrap())(address.ip());
+                        let client_socket = ClientSocket::new(
+                            address.ip(),
+                            move |msg: &str| {});
+                        (self.disconnect_function.as_ref().unwrap())(&client_socket);
                     }
                 }
             }
@@ -100,7 +103,11 @@ impl ServerSocket for UdpServerSocket {
         self.receive_function = Some(Box::new(func));
     }
 
-    fn on_disconnection(&mut self, func: impl Fn(IpAddr) + 'static) {
+    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
+        unimplemented!()
+    }
+
+    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
         self.disconnect_function = Some(Box::new(func));
     }
 }

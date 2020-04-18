@@ -3,7 +3,7 @@ mod socket;
 
 use crate::server::socket::{ServerSocket, ServerSocketImpl};
 use std::net::SocketAddr;
-const SERVER_ADDR: &str = "192.168.1.9:12351";
+const SERVER_ADDR: &str = "192.168.1.10:12351";
 
 pub struct Server {
     //socket: ServerSocketImpl
@@ -30,8 +30,8 @@ impl Server {
             client_socket.send(msg);
         });
 
-        server_socket.on_disconnection(|client_address| {
-            println!("Server on_disconnection(): {:?}", client_address);
+        server_socket.on_disconnection(|client_socket| {
+            println!("Server on_disconnection(): {:?}", client_socket.ip);
         });
 
         server_socket.listen(SERVER_ADDR);

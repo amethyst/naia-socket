@@ -7,13 +7,17 @@ pub trait ClientSocket {
 
     fn connect(&mut self, address: &str);
 
+    fn send(&mut self, msg: &str);
+
     fn update(&mut self);
 
-    fn send(&mut self, msg: &str);
+    fn disconnect(&self);
 
     fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static);
 
     fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
+
+    fn on_error(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
 
     fn on_disconnection(&mut self, func: impl Fn() + 'static);
 }
