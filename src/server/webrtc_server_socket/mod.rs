@@ -15,6 +15,10 @@ use crate::server::ServerSocket;
 use super::client_socket::ClientSocket;
 
 pub struct WebrtcServerSocket {
+    connect_function: Option<Box<dyn Fn(&ClientSocket) + Sync>>,
+    disconnect_function: Option<Box<dyn Fn(&ClientSocket) + Sync>>,
+    receive_function: Option<Box<dyn Fn(&ClientSocket, &str) + Sync>>,
+    error_function: Option<Box<dyn Fn(&ClientSocket, &str) + Sync>>,
 }
 
 #[async_trait]
@@ -23,6 +27,10 @@ impl ServerSocket for WebrtcServerSocket {
         println!("Hello WebrtcServerSocket!");
 
         let new_server_socket = WebrtcServerSocket {
+            disconnect_function: None,
+            connect_function: None,
+            receive_function: None,
+            error_function: None,
         };
 
         new_server_socket
@@ -109,20 +117,20 @@ impl ServerSocket for WebrtcServerSocket {
         }
     }
 
-    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
-        unimplemented!()
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static) {
+        self.connect_function = Some(Box::new(func));
     }
 
-    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
-        unimplemented!()
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static) {
+        self.receive_function = Some(Box::new(func));
     }
 
-    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
-        unimplemented!()
+    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static) {
+        self.error_function = Some(Box::new(func));
     }
 
-    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
-        unimplemented!()
+    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static) {
+        self.disconnect_function = Some(Box::new(func));
     }
 }
 

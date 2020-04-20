@@ -10,13 +10,13 @@ pub trait ServerSocket {
 
     async fn listen(&self, address: &str);
 
-    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static);
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static);
 
-    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static);
 
-    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
+    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static);
 
-    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static);
+    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static);
 }
 
 /// Proto Linux Server
