@@ -1,60 +1,43 @@
 
-mod socket;
-use crate::client::socket::{ClientSocket, ClientSocketImpl};
+mod server_socket;
+use server_socket::ServerSocket;
 
-const SERVER_ADDR: &str = "192.168.1.10:12351";
+pub trait ClientSocket {
+    fn new() -> Self;
 
-pub struct Client {
-    socket: ClientSocketImpl
+    fn connect(&mut self, address: &str);
+
+    fn send(&mut self, msg: &str);
+
+    fn update(&mut self);
+
+    fn disconnect(&self);
+
+    fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static);
+
+    fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
+
+    fn on_error(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
+
+    fn on_disconnection(&mut self, func: impl Fn() + 'static);
 }
 
-impl Client {
-    pub fn new() -> Client {
+/// UDP Client ///
+#[cfg(feature = "UdpClient")]
+mod udp_client_socket;
 
-        let mut client_socket = ClientSocketImpl::new();
+#[cfg(feature = "UdpClient")]
+pub use self::udp_client_socket::UdpClientSocket;
 
-        client_socket.on_connection(|sender| {
-            println!("Client on_connection()");
-        });
+#[cfg(feature = "UdpClient")]
+pub type ClientSocketImpl = UdpClientSocket;
 
-        client_socket.on_receive(|sender, msg| {
-            println!("Client on_receive(): {:?}", msg);
-        });
+/// WebRTC Client ///
+#[cfg(feature = "WebrtcClient")]
+mod webrtc_client_socket;
 
-        client_socket.on_disconnection(|| {
-            println!("Client on_disconnection()");
-        });
+#[cfg(feature = "WebrtcClient")]
+pub use self::webrtc_client_socket::WebrtcClientSocket;
 
-        client_socket.connect(SERVER_ADDR);
-
-        client_socket.send("just one extra post-connect message...");
-
-        Client {
-            socket: client_socket
-        }
-    }
-
-    pub fn update(&mut self) {
-        self.socket.update();
-    }
-
-    pub fn on_connect(&mut self, func: fn()) {
-
-    }
-
-    pub fn on_disconnect(&mut self, func: fn()) {
-
-    }
-
-    pub fn connect(&mut self) {
-
-    }
-
-    pub fn queue_message(&mut self) {
-
-    }
-
-    pub fn receive(&mut self) {
-
-    }
-}
+#[cfg(feature = "WebrtcClient")]
+pub type ClientSocketImpl = WebrtcClientSocket;

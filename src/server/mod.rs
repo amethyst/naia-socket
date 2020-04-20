@@ -1,74 +1,38 @@
 
-mod socket;
+mod client_socket;
+use client_socket::ClientSocket;
+use std::net::IpAddr;
 
-use crate::server::socket::{ServerSocket, ServerSocketImpl};
-use std::net::SocketAddr;
-const SERVER_ADDR: &str = "192.168.1.10:12351";
+pub trait ServerSocket {
+    fn new() -> Self;
 
-pub struct Server {
-    //socket: ServerSocketImpl
+    fn listen(&self, address: &str);
+
+    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static);
+
+    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
+
+    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static);
+
+    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static);
 }
 
-impl Server {
-    pub fn new() -> Server { //args should take a shared config, and a port
+/// Proto Linux Server
+#[cfg(feature = "UdpServer")]
+mod udp_server_socket;
 
-        println!("Server New!");
+#[cfg(feature = "UdpServer")]
+pub use self::udp_server_socket::UdpServerSocket;
 
-        let mut server_socket = ServerSocketImpl::new();
+#[cfg(feature = "UdpServer")]
+pub type ServerSocketImpl = UdpServerSocket;
 
-        server_socket.on_connection(|client_socket| {
-            println!("Server on_connection(), connected to {}", client_socket.ip);
+/// Final Server ///
+#[cfg(feature = "WebrtcServer")]
+mod webrtc_server_socket;
 
-            let msg: String = "hello new client!".to_string();
-            client_socket.send(msg.as_str());
-        });
+#[cfg(feature = "WebrtcServer")]
+pub use self::webrtc_server_socket::WebrtcServerSocket;
 
-        server_socket.on_receive(|client_socket, msg| {
-            println!("Server on_receive(): {:?}", msg);
-            println!("sending: {}", msg);
-            //let response_msg = "echo from server: ".to_owned() + msg;
-            client_socket.send(msg);
-        });
-
-        server_socket.on_disconnection(|client_socket| {
-            println!("Server on_disconnection(): {:?}", client_socket.ip);
-        });
-
-        server_socket.listen(SERVER_ADDR);
-
-        Server {
-            //socket: server_socket
-        }
-    }
-
-    pub fn update(&mut self) {
-
-    }
-
-    pub fn connect(&self, listen_addr: SocketAddr) { //put a port in here..
-
-    }
-
-    pub fn on_connect(&self, func: fn()) { //function should have client, clientData, and callback?
-
-    }
-
-    pub fn on_disconnect(&self, func: fn()) { //function should have client
-
-    }
-
-    pub fn add_object(&self) {
-
-    }
-
-    pub fn remove_object(&self) {
-
-    }
-
-    pub fn send_message(&self) {
-
-    }
-
-    pub fn receive_message(&self) {
-    }
-}
+#[cfg(feature = "WebrtcServer")]
+pub type ServerSocketImpl = WebrtcServerSocket;

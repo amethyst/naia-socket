@@ -1,5 +1,5 @@
 
-use crate::client::socket::{ClientSocket};
+use crate::client::{ClientSocket};
 use super::server_socket::ServerSocket;
 
 use std::io::stdin;
