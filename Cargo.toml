@@ -8,21 +8,10 @@ edition = "2018"
 UdpClient = [ "laminar", "crossbeam-channel" ]
 WebrtcClient = [ ]
 UdpServer = [ "laminar", "crossbeam-channel" ]
-WebrtcServer = [ "byteorder", "crc32c", "crc32fast", "crossbeam", "futures", "http", "openssl", "rand", "tokio", "env_logger", "hyper", "clap" ]
+WebrtcServer = [ "webrtc-unreliable" ]
 
 [dependencies]
 log = "0.4"
 laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar", optional = true }
 crossbeam-channel = { version = "0.3", optional = true }
-byteorder = { version = "1.3", optional = true }
-crc32c = { version = "0.4", optional = true }
-crc32fast = { version = "1.2", optional = true }
-crossbeam = { version = "0.7", optional = true }
-futures = { version = "0.1", optional = true }
-http = { version = "0.1.17", optional = true }
-openssl = { version = "0.10", optional = true }
-rand = { version = "0.6", optional = true }
-tokio = { version = "0.1", optional = true }
-env_logger = { version = "0.6", optional = true }
-hyper = { version = "0.12", optional = true }
-clap = { version = "2.32", optional = true }
+webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true } # { path = "../webrtc-unreliable" }

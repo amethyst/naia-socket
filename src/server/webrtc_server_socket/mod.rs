@@ -1,4 +1,4 @@
-use crate::server::socket::ServerSocket;
+use crate::server::ServerSocket;
 use super::client_socket::ClientSocket;
 
 pub struct WebrtcServerSocket {
