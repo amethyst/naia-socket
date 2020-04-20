@@ -1,7 +1,5 @@
 
-mod socket;
-
-use crate::server::socket::{ServerSocket, ServerSocketImpl};
+use gaia_socket::{ServerSocket, ServerSocketImpl};
 use std::net::SocketAddr;
 const SERVER_ADDR: &str = "192.168.1.10:12351";
 

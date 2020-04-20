@@ -1,6 +1,5 @@
 
-mod socket;
-use crate::client::socket::{ClientSocket, ClientSocketImpl};
+use gaia_socket::{ClientSocket, ClientSocketImpl};
 
 const SERVER_ADDR: &str = "192.168.1.10:12351";
 
