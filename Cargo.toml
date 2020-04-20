@@ -7,11 +7,15 @@ edition = "2018"
 [features]
 UdpClient = [ "laminar", "crossbeam-channel" ]
 WebrtcClient = [ ]
-UdpServer = [ "laminar", "crossbeam-channel" ]
-WebrtcServer = [ "webrtc-unreliable" ]
+UdpServer = [ "laminar", "crossbeam-channel", "async-trait" ]
+WebrtcServer = [ "webrtc-unreliable", "clap", "hyper", "tokio", "async-trait" ]
 
 [dependencies]
 log = "0.4"
 laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar", optional = true }
 crossbeam-channel = { version = "0.3", optional = true }
-webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true } # { path = "../webrtc-unreliable" }
+webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true } # { path = "../webrtc-unreliable", optional = true }
+clap = { version = "2.32", optional = true}
+hyper = { version = "0.13", features = ["stream"], optional = true }
+tokio = { version = "0.2", features = ["macros"], optional = true }
+async-trait = { version = "0.1.30", optional = true }

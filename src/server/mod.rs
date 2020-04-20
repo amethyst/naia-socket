@@ -2,11 +2,13 @@
 mod client_socket;
 use client_socket::ClientSocket;
 use std::net::IpAddr;
+use async_trait::async_trait;
 
+#[async_trait]
 pub trait ServerSocket {
     fn new() -> Self;
 
-    fn listen(&self, address: &str);
+    async fn listen(&self, address: &str);
 
     fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static);
 
