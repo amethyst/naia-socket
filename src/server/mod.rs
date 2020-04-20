@@ -8,31 +8,32 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new() -> Server { //args should take a shared config, and a port
+    pub async fn new() -> Server { //args should take a shared config, and a port
 
         println!("Server New!");
 
         let mut server_socket = ServerSocketImpl::new();
 
-        server_socket.on_connection(|client_socket| {
-            println!("Server on_connection(), connected to {}", client_socket.ip);
+//        server_socket.on_connection(|client_socket| {
+//            println!("Server on_connection(), connected to {}", client_socket.ip);
+//
+//            let msg: String = "hello new client!".to_string();
+//            client_socket.send(msg.as_str());
+//        });
+//
+//        server_socket.on_receive(|client_socket, msg| {
+//            println!("Server on_receive(): {:?}", msg);
+//            println!("sending: {}", msg);
+//            //let response_msg = "echo from server: ".to_owned() + msg;
+//            client_socket.send(msg);
+//        });
+//
+//        server_socket.on_disconnection(|client_socket| {
+//            println!("Server on_disconnection(): {:?}", client_socket.ip);
+//        });
 
-            let msg: String = "hello new client!".to_string();
-            client_socket.send(msg.as_str());
-        });
-
-        server_socket.on_receive(|client_socket, msg| {
-            println!("Server on_receive(): {:?}", msg);
-            println!("sending: {}", msg);
-            //let response_msg = "echo from server: ".to_owned() + msg;
-            client_socket.send(msg);
-        });
-
-        server_socket.on_disconnection(|client_socket| {
-            println!("Server on_disconnection(): {:?}", client_socket.ip);
-        });
-
-        server_socket.listen(SERVER_ADDR);
+        server_socket.listen(SERVER_ADDR)
+            .await;
 
         Server {
             //socket: server_socket
