@@ -11,4 +11,4 @@ UdpServer = [ "gaia-socket/UdpServer" ]
 WebrtcServer = [ "gaia-socket/WebrtcServer" ]
 
 [dependencies]
-gaia-socket = { path = "../gaia-socket" }
+gaia-socket = { git = "https://github.com/connorcarpenter/gaia-socket" } # { path = "../gaia-socket" }
