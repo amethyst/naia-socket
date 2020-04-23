@@ -8,7 +8,7 @@ edition = "2018"
 UdpClient = [ "laminar", "crossbeam-channel" ]
 WebrtcClient = [ ]
 UdpServer = [ "laminar", "crossbeam-channel", "async-trait" ]
-WebrtcServer = [ "webrtc-unreliable", "clap", "hyper", "tokio", "async-trait" ]
+WebrtcServer = [ "webrtc-unreliable", "clap", "hyper", "tokio", "async-trait", "crossbeam-channel" ]
 
 [dependencies]
 log = "0.4"

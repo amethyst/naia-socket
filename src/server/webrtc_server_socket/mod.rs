@@ -9,16 +9,20 @@ use hyper::{
 use log::{info, warn};
 use std::net::{ IpAddr, SocketAddr, TcpListener };
 use async_trait::async_trait;
-use webrtc_unreliable::Server as RtcServer;
+use webrtc_unreliable::{Server as RtcServer, MessageType};
+
+use crossbeam_channel::{unbounded, Sender, Receiver};
 
 use crate::server::ServerSocket;
-use super::client_socket::ClientSocket;
+use super::client_message::ClientMessage;
 
 pub struct WebrtcServerSocket {
-    connect_function: Option<Box<dyn Fn(&ClientSocket) + Sync>>,
-    disconnect_function: Option<Box<dyn Fn(&ClientSocket) + Sync>>,
-    receive_function: Option<Box<dyn Fn(&ClientSocket, &str) + Sync>>,
-    error_function: Option<Box<dyn Fn(&ClientSocket, &str) + Sync>>,
+    connect_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
+    disconnect_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
+    receive_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
+    error_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
+    message_sender: Sender<ClientMessage>,
+    message_receiver: Receiver<ClientMessage>,
 }
 
 #[async_trait]
@@ -26,11 +30,14 @@ impl ServerSocket for WebrtcServerSocket {
     fn new() -> WebrtcServerSocket {
         println!("Hello WebrtcServerSocket!");
 
+        let (message_sender, message_receiver) = unbounded();
         let new_server_socket = WebrtcServerSocket {
             disconnect_function: None,
             connect_function: None,
             receive_function: None,
             error_function: None,
+            message_sender,
+            message_receiver
         };
 
         new_server_socket
@@ -98,39 +105,73 @@ impl ServerSocket for WebrtcServerSocket {
         loop {
             match rtc_server.recv(&mut message_buf).await {
                 Ok(received) => {
-                    if let Err(err) = rtc_server
-                        .send(
-                            &message_buf[0..received.message_len],
-                            received.message_type,
-                            &received.remote_addr,
-                        )
-                        .await
-                    {
-                        warn!(
-                            "could not send message to {}: {}",
-                            received.remote_addr, err
-                        )
-                    }
+
+                    let packet_payload = &message_buf[0..received.message_len];
+                    let message_type = received.message_type;
+                    let address = received.remote_addr;
+
+                    let message = String::from_utf8_lossy(packet_payload);
+
+                    let client_message = ClientMessage::new(
+                        address,
+                        message.as_ref()
+                    );
+
+                    (self.receive_function.as_ref().unwrap())(&client_message);
+
+//                    let error = rtc_server
+//                        .send(
+//                            &message_buf[0..received.message_len],
+//                            received.message_type,
+//                            &received.remote_addr,
+//                        )
+//                        .await;
+//
+//                    match error {
+//                        Err(err) => {
+//                            warn!(
+//                                "could not send message to {}: {}",
+//                                received.remote_addr, err
+//                            )
+//                        }
+//                        _ => {}
+//                    }
                 }
-                Err(err) => warn!("could not receive RTC message: {}", err),
+                Err(err) => {
+                    warn!("could not receive RTC message: {}", err);
+                },
+            }
+
+            if let Ok(client_envelope) = self.message_receiver.recv() {
+                if let Some(client_message) = client_envelope.message {
+                    rtc_server.send(
+                        client_message.into_bytes().as_slice(),
+                        MessageType::Text,
+                        &client_envelope.address
+                    ).await;
+                }
             }
         }
     }
 
-    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static) {
+    fn on_connection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static) {
         self.connect_function = Some(Box::new(func));
     }
 
-    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static) {
+    fn on_receive(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static) {
         self.receive_function = Some(Box::new(func));
     }
 
-    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static) {
+    fn on_error(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static) {
         self.error_function = Some(Box::new(func));
     }
 
-    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static) {
+    fn on_disconnection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static) {
         self.disconnect_function = Some(Box::new(func));
+    }
+
+    fn get_sender(&mut self) -> Sender<ClientMessage> {
+        return self.message_sender.clone();
     }
 }
 

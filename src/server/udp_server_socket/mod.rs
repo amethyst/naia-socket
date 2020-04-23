@@ -1,5 +1,5 @@
 use crate::server::{ServerSocket};
-use super::client_socket::ClientSocket;
+use super::client_message::ClientMessage;
 
 use std::io::stdin;
 use std::thread;
@@ -10,12 +10,14 @@ use crossbeam_channel::{Sender as ChannelSender};
 use std::{time};
 use std::net::IpAddr;
 
+
+
 /////
 
 pub struct UdpServerSocket {
-    connect_function: Option<Box<dyn Fn(&ClientSocket)>>,
-    receive_function: Option<Box<dyn Fn(&ClientSocket, &str)>>,
-    disconnect_function: Option<Box<dyn Fn(&ClientSocket)>>,
+    connect_function: Option<Box<dyn Fn(&ClientMessage)>>,
+    receive_function: Option<Box<dyn Fn(&ClientMessage)>>,
+    disconnect_function: Option<Box<dyn Fn(&ClientMessage)>>,
 }
 
 impl ServerSocket for UdpServerSocket {
@@ -95,19 +97,23 @@ impl ServerSocket for UdpServerSocket {
         }
     }
 
-    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
+    fn on_connection(&mut self, func: impl Fn(&ClientMessage) + 'static) {
         self.connect_function = Some(Box::new(func));
     }
 
-    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
+    fn on_receive(&mut self, func: impl Fn(&ClientMessage, &str) + 'static) {
         self.receive_function = Some(Box::new(func));
     }
 
-    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + 'static) {
+    fn on_error(&mut self, func: impl Fn(&ClientMessage, &str) + 'static) {
         unimplemented!()
     }
 
-    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + 'static) {
+    fn on_disconnection(&mut self, func: impl Fn(&ClientMessage) + 'static) {
         self.disconnect_function = Some(Box::new(func));
+    }
+
+    fn get_sender(&mut self) -> ChannelSender<ClientMessage> {
+        unimplemented!()
     }
 }

@@ -1,8 +1,9 @@
 
-mod client_socket;
-use client_socket::ClientSocket;
+mod client_message;
+pub use client_message::ClientMessage;
 use std::net::IpAddr;
 use async_trait::async_trait;
+use crossbeam_channel::{Sender};
 
 #[async_trait]
 pub trait ServerSocket {
@@ -10,13 +11,15 @@ pub trait ServerSocket {
 
     async fn listen(&self, address: &str);
 
-    fn on_connection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static);
+    fn on_connection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
 
-    fn on_receive(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static);
+    fn on_receive(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
 
-    fn on_error(&mut self, func: impl Fn(&ClientSocket, &str) + Sync + 'static);
+    fn on_error(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
 
-    fn on_disconnection(&mut self, func: impl Fn(&ClientSocket) + Sync + 'static);
+    fn on_disconnection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
+
+    fn get_sender(&mut self) -> Sender<ClientMessage>;
 }
 
 /// Proto Linux Server
