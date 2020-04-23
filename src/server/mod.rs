@@ -1,7 +1,9 @@
 
 use gaia_socket::{ServerSocket, ServerSocketImpl};
-use std::net::SocketAddr;
-const SERVER_ADDR: &str = "192.168.1.10:12351";
+use std::net::{SocketAddr, IpAddr};
+use crate::internal_shared::find_ip_address;
+
+const DEFAULT_PORT: &str = "3179";
 
 pub struct Server {
     //socket: ServerSocketImpl
@@ -32,7 +34,8 @@ impl Server {
             println!("Server on_disconnection(): {:?}", client_socket.ip);
         });
 
-        server_socket.listen(SERVER_ADDR)
+        let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
+        server_socket.listen(current_socket_address.as_str())
             .await;
 
         Server {

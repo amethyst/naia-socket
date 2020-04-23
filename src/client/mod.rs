@@ -1,7 +1,8 @@
 
 use gaia_socket::{ClientSocket, ClientSocketImpl};
+use crate::internal_shared::find_ip_address;
 
-const SERVER_ADDR: &str = "192.168.1.10:12351";
+const DEFAULT_PORT: &str = "3179";
 
 pub struct Client {
     socket: ClientSocketImpl
@@ -24,7 +25,8 @@ impl Client {
             println!("Client on_disconnection()");
         });
 
-        client_socket.connect(SERVER_ADDR);
+        let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
+        client_socket.connect(current_socket_address.as_str());
 
         client_socket.send("just one extra post-connect message...");
 
