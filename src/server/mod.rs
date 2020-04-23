@@ -1,7 +1,9 @@
 
-use gaia_socket::{ServerSocket, ServerSocketImpl};
+use gaia_socket::{ServerSocket, ServerSocketImpl, ClientMessage};
 use std::net::{SocketAddr, IpAddr};
+use std::sync::{Arc,Mutex};
 use crate::internal_shared::find_ip_address;
+use std::borrow::Borrow;
 
 const DEFAULT_PORT: &str = "3179";
 
@@ -16,22 +18,34 @@ impl Server {
 
         let mut server_socket = ServerSocketImpl::new();
 
-        server_socket.on_connection(|client_socket| {
-            println!("Server on_connection(), connected to {}", client_socket.ip);
+        let server_socket_sender_1 = server_socket.get_sender();
+        let server_socket_sender_2 = server_socket.get_sender();
+
+        server_socket.on_connection(move |client_message| {
+            println!("Server on_connection(), connected to {}", client_message.address);
 
             let msg: String = "hello new client!".to_string();
-            client_socket.send(msg.as_str());
+            server_socket_sender_1.send(ClientMessage::new(client_message.address, msg.as_str()));
         });
 
-        server_socket.on_receive(|client_socket, msg| {
-            println!("Server on_receive(): {:?}", msg);
-            println!("sending: {}", msg);
-            //let response_msg = "echo from server: ".to_owned() + msg;
-            client_socket.send(msg);
+        server_socket.on_receive(move |client_message| {
+            if let Some(message) = &client_message.message {
+                println!("Server on_receive(): {}", message);
+
+                //let response_msg = "echo from server: ".to_owned() + msg;
+                let new_string = client_message.message.as_ref().unwrap();
+                let new_client_message = ClientMessage {
+                    address: client_message.address,
+                    message: Some(message.clone())
+                };
+
+                println!("sending: {}", message);
+                server_socket_sender_2.send(new_client_message);
+            }
         });
 
-        server_socket.on_disconnection(|client_socket| {
-            println!("Server on_disconnection(): {:?}", client_socket.ip);
+        server_socket.on_disconnection(|client_message| {
+            println!("Server on_disconnection(): {:?}", client_message.address);
         });
 
         let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
