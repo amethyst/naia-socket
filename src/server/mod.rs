@@ -32,7 +32,6 @@ impl Server {
             if let Some(message) = &client_message.message {
                 println!("Server on_receive(): {}", message);
 
-                //let response_msg = "echo from server: ".to_owned() + msg;
                 let new_string = client_message.message.as_ref().unwrap();
                 let new_client_message = ClientMessage {
                     address: client_message.address,
