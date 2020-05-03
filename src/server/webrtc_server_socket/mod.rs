@@ -44,6 +44,8 @@ impl ServerSocket for WebrtcServerSocket {
     }
 
     async fn listen(&self, address: &str) {
+        env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
         let session_listen_addr: SocketAddr = address
             .parse()
             .expect("could not parse HTTP address/port");
