@@ -14,8 +14,6 @@ pub struct Server {
 impl Server {
     pub async fn new() -> Server { //args should take a shared config, and a port
 
-        println!("Server New!");
-
         let mut server_socket = ServerSocketImpl::new();
 
         let server_socket_sender_1 = server_socket.get_sender();
@@ -48,6 +46,7 @@ impl Server {
         });
 
         let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
+        println!("Connecting to: {}", current_socket_address);
         server_socket.listen(current_socket_address.as_str())
             .await;
 
