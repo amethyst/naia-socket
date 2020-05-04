@@ -22,8 +22,8 @@ impl Server {
         server_socket.on_connection(move |client_message| {
             println!("Server on_connection(), connected to {}", client_message.address);
 
-//            let msg: String = "hello new client!".to_string();
-//            server_socket_sender_1.send(ClientMessage::new(client_message.address, msg.as_str()));
+            let msg: String = "hello new client!".to_string();
+            server_socket_sender_1.send(ClientMessage::new(client_message.address, msg.as_str()));
         });
 
         server_socket.on_receive(move |client_message| {
