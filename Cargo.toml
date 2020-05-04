@@ -14,7 +14,7 @@ WebrtcServer = [ "webrtc-unreliable", "clap", "hyper", "tokio", "async-trait", "
 log = "0.4"
 laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar", optional = true }
 crossbeam-channel = { version = "0.3", optional = true }
-webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true } # { path = "../webrtc-unreliable", optional = true }
+webrtc-unreliable = { path = "../webrtc-unreliable", optional = true } # { git = "https://github.com/kyren/webrtc-unreliable", optional = true }
 clap = { version = "2.32", optional = true}
 hyper = { version = "0.13", features = ["stream"], optional = true }
 tokio = { version = "0.2", features = ["macros"], optional = true }

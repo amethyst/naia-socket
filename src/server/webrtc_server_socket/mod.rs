@@ -9,7 +9,7 @@ use hyper::{
 use log::{info, warn};
 use std::net::{ IpAddr, SocketAddr, TcpListener };
 use async_trait::async_trait;
-use webrtc_unreliable::{Server as RtcServer, MessageType};
+use webrtc_unreliable::{Server as RtcServer, MessageType, ClientEvent};
 
 use crossbeam_channel::{unbounded, Sender, Receiver};
 
@@ -103,6 +103,7 @@ impl ServerSocket for WebrtcServerSocket {
                 .expect("HTTP session server has died");
         });
 
+        let mut count = 1;
         let mut message_buf = vec![0; 0x10000];
         loop {
             match rtc_server.recv(&mut message_buf).await {
@@ -120,37 +121,53 @@ impl ServerSocket for WebrtcServerSocket {
                     );
 
                     (self.receive_function.as_ref().unwrap())(&client_message);
-
-//                    let error = rtc_server
-//                        .send(
-//                            &message_buf[0..received.message_len],
-//                            received.message_type,
-//                            &received.remote_addr,
-//                        )
-//                        .await;
-//
-//                    match error {
-//                        Err(err) => {
-//                            warn!(
-//                                "could not send message to {}: {}",
-//                                received.remote_addr, err
-//                            )
-//                        }
-//                        _ => {}
-//                    }
                 }
                 Err(err) => {
                     warn!("could not receive RTC message: {}", err);
                 },
             }
 
-            if let Ok(client_envelope) = self.message_receiver.recv() {
-                if let Some(client_message) = client_envelope.message {
-                    rtc_server.send(
-                        client_message.into_bytes().as_slice(),
-                        MessageType::Text,
-                        &client_envelope.address
-                    ).await;
+            //if (count == 1) {
+                if let client_envelope = rtc_server.get_next_event().await {
+                    match client_envelope {
+                        Some(ClientEvent::Connection(address)) => {
+                            let client_message = ClientMessage {
+                                address,
+                                message: None
+                            };
+                            (self.connect_function.as_ref().unwrap())(&client_message);
+                        }
+                        Some(ClientEvent::Disconnection(address)) => {
+                            let client_message = ClientMessage {
+                                address,
+                                message: None
+                            };
+                            (self.disconnect_function.as_ref().unwrap())(&client_message);
+                        }
+                        _ => {}
+                    }
+                }
+            //}
+
+            match self.message_receiver.recv() {
+                Ok(client_envelope) => {
+                    match client_envelope.message {
+                        Some(client_message) => {
+                            println!("Some message {}", client_message);
+                            rtc_server.send(
+                                client_message.into_bytes().as_slice(),
+                                MessageType::Text,
+                                &client_envelope.address
+                            ).await;
+                            count+=1;
+                        }
+                        _ => {
+                            println!("What's going on?")
+                        }
+                    }
+                }
+                Err(error) => {
+                    println!("What's going on?")
                 }
             }
         }
