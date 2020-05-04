@@ -9,12 +9,13 @@ use hyper::{
 use log::{info, warn};
 use std::net::{ IpAddr, SocketAddr, TcpListener };
 use async_trait::async_trait;
-use webrtc_unreliable::{Server as RtcServer, MessageType, ClientEvent};
+use webrtc_unreliable::{Server as RtcServer, MessageType};
 
 use crossbeam_channel::{unbounded, Sender, Receiver};
 
 use crate::server::ServerSocket;
 use super::client_message::ClientMessage;
+use super::client_event::ClientEvent;
 
 pub struct WebrtcServerSocket {
     connect_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
@@ -23,6 +24,8 @@ pub struct WebrtcServerSocket {
     error_function: Option<Box<dyn Fn(&ClientMessage) + Sync + Send>>,
     message_sender: Sender<ClientMessage>,
     message_receiver: Receiver<ClientMessage>,
+    event_sender: Sender<ClientEvent>,
+    event_receiver: Receiver<ClientEvent>,
 }
 
 #[async_trait]
@@ -31,13 +34,16 @@ impl ServerSocket for WebrtcServerSocket {
         println!("Hello WebrtcServerSocket!");
 
         let (message_sender, message_receiver) = unbounded();
+        let (event_sender, event_receiver): (Sender<ClientEvent>, Receiver<ClientEvent>) = unbounded();
         let new_server_socket = WebrtcServerSocket {
             disconnect_function: None,
             connect_function: None,
             receive_function: None,
             error_function: None,
             message_sender,
-            message_receiver
+            message_receiver,
+            event_sender,
+            event_receiver
         };
 
         new_server_socket
@@ -57,6 +63,23 @@ impl ServerSocket for WebrtcServerSocket {
         let mut rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr)
             .await
             .expect("could not start RTC server");
+
+        let cloned_event_sender_1 = self.event_sender.clone();
+        let cloned_event_sender_2 = self.event_sender.clone();
+        rtc_server.on_connection(move |socket_addr| {
+            let client_message = ClientMessage {
+                message: None,
+                address: socket_addr
+            };
+            cloned_event_sender_1.send(ClientEvent::Connection(socket_addr));
+        });
+        rtc_server.on_disconnection(move |socket_addr| {
+            let client_message = ClientMessage {
+                message: None,
+                address: socket_addr
+            };
+            cloned_event_sender_2.send(ClientEvent::Disconnection(socket_addr));
+        });
 
         let session_endpoint = rtc_server.session_endpoint();
         let make_svc = make_service_fn(move |addr_stream: &AddrStream| {
@@ -103,7 +126,6 @@ impl ServerSocket for WebrtcServerSocket {
                 .expect("HTTP session server has died");
         });
 
-        let mut count = 1;
         let mut message_buf = vec![0; 0x10000];
         loop {
             match rtc_server.recv(&mut message_buf).await {
@@ -127,39 +149,15 @@ impl ServerSocket for WebrtcServerSocket {
                 },
             }
 
-            //if (count == 1) {
-                if let client_envelope = rtc_server.get_next_event().await {
-                    match client_envelope {
-                        Some(ClientEvent::Connection(address)) => {
-                            let client_message = ClientMessage {
-                                address,
-                                message: None
-                            };
-                            (self.connect_function.as_ref().unwrap())(&client_message);
-                        }
-                        Some(ClientEvent::Disconnection(address)) => {
-                            let client_message = ClientMessage {
-                                address,
-                                message: None
-                            };
-                            (self.disconnect_function.as_ref().unwrap())(&client_message);
-                        }
-                        _ => {}
-                    }
-                }
-            //}
-
-            match self.message_receiver.recv() {
+            match self.message_receiver.try_recv() {
                 Ok(client_envelope) => {
                     match client_envelope.message {
                         Some(client_message) => {
-                            println!("Some message {}", client_message);
                             rtc_server.send(
                                 client_message.into_bytes().as_slice(),
                                 MessageType::Text,
                                 &client_envelope.address
                             ).await;
-                            count+=1;
                         }
                         _ => {
                             println!("What's going on?")
@@ -169,6 +167,30 @@ impl ServerSocket for WebrtcServerSocket {
                 Err(error) => {
                     println!("What's going on?")
                 }
+            }
+
+            match self.event_receiver.try_recv() {
+                Ok(client_envelope) => {
+                    match client_envelope {
+                        ClientEvent::Connection(address) => {
+                            println!("Connect event {}", address);
+                            let client_message = ClientMessage {
+                                address,
+                                message: None
+                            };
+                            (self.connect_function.as_ref().unwrap())(&client_message);
+                        }
+                        ClientEvent::Disconnection(address) => {
+                            println!("Disconnect event {}", address);
+                            let client_message = ClientMessage {
+                                address,
+                                message: None
+                            };
+                            (self.disconnect_function.as_ref().unwrap())(&client_message);
+                        }
+                    }
+                }
+                Err(error) => {}
             }
         }
     }

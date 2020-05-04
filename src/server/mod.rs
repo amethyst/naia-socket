@@ -1,6 +1,8 @@
 
 mod client_message;
 pub use client_message::ClientMessage;
+mod client_event;
+pub use client_event::ClientEvent;
 use std::net::IpAddr;
 use async_trait::async_trait;
 use crossbeam_channel::{Sender};
