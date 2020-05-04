@@ -22,8 +22,8 @@ impl Server {
         server_socket.on_connection(move |client_message| {
             println!("Server on_connection(), connected to {}", client_message.address);
 
-            let msg: String = "hello new client!".to_string();
-            server_socket_sender_1.send(ClientMessage::new(client_message.address, msg.as_str()));
+//            let msg: String = "hello new client!".to_string();
+//            server_socket_sender_1.send(ClientMessage::new(client_message.address, msg.as_str()));
         });
 
         server_socket.on_receive(move |client_message| {
@@ -36,7 +36,7 @@ impl Server {
                     message: Some(message.clone())
                 };
 
-                println!("sending: {}", message);
+                println!("Server send(): {}", new_client_message.message.as_ref().unwrap());
                 server_socket_sender_2.send(new_client_message);
             }
         });
@@ -46,7 +46,7 @@ impl Server {
         });
 
         let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
-        println!("Connecting to: {}", current_socket_address);
+        println!("Webserver Listening on: {}", current_socket_address);
         server_socket.listen(current_socket_address.as_str())
             .await;
 
