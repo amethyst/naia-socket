@@ -129,8 +129,7 @@ impl ServerSocket for WebrtcServerSocket {
         let mut message_buf = vec![0; 0x10000];
         loop {
             match rtc_server.recv(&mut message_buf).await {
-                Ok(received) => {
-
+                Ok(Some(received)) => {
                     let packet_payload = &message_buf[0..received.message_len];
                     let message_type = received.message_type;
                     let address = received.remote_addr;
@@ -144,9 +143,12 @@ impl ServerSocket for WebrtcServerSocket {
 
                     (self.receive_function.as_ref().unwrap())(&client_message);
                 }
+                Ok(None) => {
+                    //println!("no message..");
+                }
                 Err(err) => {
                     warn!("could not receive RTC message: {}", err);
-                },
+                }
             }
 
             match self.message_receiver.try_recv() {
@@ -165,7 +167,7 @@ impl ServerSocket for WebrtcServerSocket {
                     }
                 }
                 Err(error) => {
-                    println!("What's going on?")
+                    //println!("What's going on?")
                 }
             }
 
@@ -173,7 +175,6 @@ impl ServerSocket for WebrtcServerSocket {
                 Ok(client_envelope) => {
                     match client_envelope {
                         ClientEvent::Connection(address) => {
-                            println!("Connect event {}", address);
                             let client_message = ClientMessage {
                                 address,
                                 message: None
@@ -181,7 +182,6 @@ impl ServerSocket for WebrtcServerSocket {
                             (self.connect_function.as_ref().unwrap())(&client_message);
                         }
                         ClientEvent::Disconnection(address) => {
-                            println!("Disconnect event {}", address);
                             let client_message = ClientMessage {
                                 address,
                                 message: None
