@@ -13,4 +13,4 @@ pub use client::{ClientSocket, ClientSocketImpl};
 mod server;
 
 #[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-pub use server::{ServerSocket, ServerSocketImpl, ClientMessage};
+pub use server::{ServerSocket, ServerSocketImpl, ClientEvent};

@@ -1,27 +1,18 @@
 
-mod client_message;
-pub use client_message::ClientMessage;
+use async_trait::async_trait;
+use futures_channel::mpsc;
+use std::error::Error;
+
 mod client_event;
 pub use client_event::ClientEvent;
-use std::net::IpAddr;
-use async_trait::async_trait;
-use futures_channel::mpsc::{Sender};
 
 #[async_trait]
 pub trait ServerSocket {
-    fn new() -> Self;
+    async fn bind(address: &str) -> ServerSocketImpl;
 
-    async fn listen(&mut self, address: &str);
+    async fn receive(&mut self) -> Result<ClientEvent, Box<dyn Error>>;
 
-    fn on_connection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
-
-    fn on_receive(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
-
-    fn on_error(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
-
-    fn on_disconnection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
-
-    fn get_sender(&mut self) -> Sender<ClientMessage>;
+    fn get_sender(&mut self) -> mpsc::Sender<ClientEvent>;
 }
 
 /// Proto Linux Server
