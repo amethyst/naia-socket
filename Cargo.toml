@@ -12,3 +12,7 @@ WebrtcServer = [ "gaia-socket/WebrtcServer" ]
 
 [dependencies]
 gaia-socket = { path = "../gaia-socket" } # { git = "https://github.com/connorcarpenter/gaia-socket" } #
+futures-channel = { version = "0.3", features = ["sink"] }
+futures-core = { version = "0.3" }
+futures-sink = { version = "0.3" }
+futures-util = { version = "0.3", features = ["sink"] }
