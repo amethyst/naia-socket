@@ -5,13 +5,13 @@ mod client_event;
 pub use client_event::ClientEvent;
 use std::net::IpAddr;
 use async_trait::async_trait;
-use crossbeam_channel::{Sender};
+use futures_channel::mpsc::{Sender};
 
 #[async_trait]
 pub trait ServerSocket {
     fn new() -> Self;
 
-    async fn listen(&self, address: &str);
+    async fn listen(&mut self, address: &str);
 
     fn on_connection(&mut self, func: impl Fn(&ClientMessage) + Sync + Send + 'static);
 
