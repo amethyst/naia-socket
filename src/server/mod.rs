@@ -1,10 +1,6 @@
 
-use std::net::{SocketAddr, IpAddr};
-use std::sync::{Arc,Mutex};
-use std::borrow::Borrow;
-use futures_channel::mpsc;
-use futures_core::Stream;
-use futures_util::{pin_mut, select, FutureExt, SinkExt, StreamExt};
+use std::net::{SocketAddr};
+use futures_util::{SinkExt};
 
 use gaia_socket::{ServerSocket, ServerSocketImpl, ClientEvent};
 use crate::internal_shared::find_ip_address;
@@ -31,7 +27,9 @@ impl Server {
                     println!("Server on_connection(), connected to {}", address);
 
                     let msg: String = "hello new client!".to_string();
-                    sender.send(ClientEvent::Message(address, msg)).await;
+                    if let Err(err) = sender.send(ClientEvent::Message(address, msg)).await {
+                        println!("error!");
+                    }
                 }
                 Ok(ClientEvent::Disconnection(address)) => {
                     println!("Server on_disconnection(): {:?}", address);
@@ -40,7 +38,9 @@ impl Server {
                     println!("Server on_receive(): {}", message);
 
                     println!("Server send(): {}", message);
-                    sender.send(ClientEvent::Message(address, message)).await;
+                    if let Err(err) = sender.send(ClientEvent::Message(address, message)).await {
+                        println!("error!");
+                    }
                 }
                 Ok(ClientEvent::Tick) => {}
                 Err(error) => {}
