@@ -117,9 +117,9 @@ impl ServerSocket for WebrtcServerSocket {
     async fn receive(&mut self) -> Result<ClientEvent, Box<dyn Error>> {
 
         enum Next {
-            IncomingEvent(RtcEvent),
-            IncomingMessage(Result<MessageResult, RecvError>),
-            OutgoingMessage(ClientEvent),
+            ToClientEvent(RtcEvent),
+            ToClientMessage(Result<MessageResult, RecvError>),
+            ToServerMessage(ClientEvent),
             PeriodicTimer,
         }
 
@@ -131,28 +131,27 @@ impl ServerSocket for WebrtcServerSocket {
                 let to_server_receiver_next = self.to_server_receiver.next().fuse();
                 pin_mut!(to_server_receiver_next);
 
-                let rtc_event_receiver_next = self.to_client_event_receiver.next().fuse();
-                pin_mut!(rtc_event_receiver_next);
+                let to_client_event_receiver_next = self.to_client_event_receiver.next().fuse();
+                pin_mut!(to_client_event_receiver_next);
 
-                let rs = &mut self.rtc_server;
-                let something2 = rs.recv(&mut self.message_buf);
-                let rtc_msg_receiver_next = something2.fuse();
-                pin_mut!(rtc_msg_receiver_next);
+                let rtc_server = &mut self.rtc_server;
+                let to_client_message_receiver_next = rtc_server.recv(&mut self.message_buf).fuse();
+                pin_mut!(to_client_message_receiver_next);
 
                 select! {
-                    incoming_message = rtc_msg_receiver_next => {
-                        Next::IncomingMessage(
-                            incoming_message
+                    to_client_message = to_client_message_receiver_next => {
+                        Next::ToClientMessage(
+                            to_client_message
                         )
                     }
-                    outgoing_message = to_server_receiver_next => {
-                        Next::OutgoingMessage(
-                            outgoing_message.expect("to client message receiver closed")
+                    to_server_message = to_server_receiver_next => {
+                        Next::ToServerMessage(
+                            to_server_message.expect("to server message receiver closed")
                         )
                     }
-                    incoming_event = rtc_event_receiver_next => {
-                        Next::IncomingEvent(
-                            incoming_event.expect("from server event receiver closed")
+                    to_client_event = to_client_event_receiver_next => {
+                        Next::ToClientEvent(
+                            to_client_event.expect("from server event receiver closed")
                         )
                     }
                     _ = timer_next => {
@@ -162,8 +161,8 @@ impl ServerSocket for WebrtcServerSocket {
             };
 
             match next {
-                Next::IncomingEvent(incoming_event) => {
-                    match incoming_event {
+                Next::ToClientEvent(to_client_event) => {
+                    match to_client_event {
                         RtcEvent::Connection(address) => {
                             return Ok(ClientEvent::Connection(address));
                         }
@@ -172,8 +171,8 @@ impl ServerSocket for WebrtcServerSocket {
                         }
                     }
                 }
-                Next::IncomingMessage(incoming_message) => {
-                    match incoming_message {
+                Next::ToClientMessage(to_client_message) => {
+                    match to_client_message {
                         Ok(message_result) => {
                             let packet_payload = &self.message_buf[0..message_result.message_len];
                             //let message_type = message_result.message_type;
@@ -188,7 +187,7 @@ impl ServerSocket for WebrtcServerSocket {
                         }
                     }
                 }
-                Next::OutgoingMessage(ClientEvent::Message(address, message)) => {
+                Next::ToServerMessage(ClientEvent::Message(address, message)) => {
                     self.rtc_server.send(
                         message.into_bytes().as_slice(),
                         MessageType::Text,
