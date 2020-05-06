@@ -1,7 +1,6 @@
 
 use async_trait::async_trait;
 use futures_channel::mpsc;
-use std::error::Error;
 
 mod client_event;
 pub use client_event::ClientEvent;
@@ -10,7 +9,7 @@ pub use client_event::ClientEvent;
 pub trait ServerSocket {
     async fn bind(address: &str) -> ServerSocketImpl;
 
-    async fn receive(&mut self) -> Result<ClientEvent, Box<dyn Error>>;
+    async fn receive(&mut self) -> ClientEvent;
 
     fn get_sender(&mut self) -> mpsc::Sender<ClientEvent>;
 }

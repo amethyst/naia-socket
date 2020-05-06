@@ -110,11 +110,7 @@ impl ServerSocket for WebrtcServerSocket {
         socket
     }
 
-    fn get_sender(&mut self) -> mpsc::Sender<ClientEvent> {
-        return self.to_server_sender.clone();
-    }
-
-    async fn receive(&mut self) -> Result<ClientEvent, Box<dyn Error>> {
+    async fn receive(&mut self) -> ClientEvent {
 
         enum Next {
             ToClientEvent(RtcEvent),
@@ -164,10 +160,10 @@ impl ServerSocket for WebrtcServerSocket {
                 Next::ToClientEvent(to_client_event) => {
                     match to_client_event {
                         RtcEvent::Connection(address) => {
-                            return Ok(ClientEvent::Connection(address));
+                            return ClientEvent::Connection(address);
                         }
                         RtcEvent::Disconnection(address) => {
-                            return Ok(ClientEvent::Disconnection(address));
+                            return ClientEvent::Disconnection(address);
                         }
                     }
                 }
@@ -175,33 +171,39 @@ impl ServerSocket for WebrtcServerSocket {
                     match to_client_message {
                         Ok(message_result) => {
                             let packet_payload = &self.message_buf[0..message_result.message_len];
-                            //let message_type = message_result.message_type;
+
                             let address = message_result.remote_addr;
 
                             let message = String::from_utf8_lossy(packet_payload);
 
-                            return Ok(ClientEvent::Message(address, message.to_string()))
+                            return ClientEvent::Message(address, message.to_string());
                         }
                         Err(err) => {
-                            warn!("could not receive RTC message: {}", err);
+                            return ClientEvent::Error(Box::new(err));
                         }
                     }
                 }
                 Next::ToServerMessage(ClientEvent::Message(address, message)) => {
-                    self.rtc_server.send(
+                    if let Err(err) = self.rtc_server.send(
                         message.into_bytes().as_slice(),
                         MessageType::Text,
                         &address
-                    ).await?;
+                    ).await {
+                        return ClientEvent::Error(Box::new(err));
+                    }
                 }
                 Next::PeriodicTimer => {
-                    return Ok(ClientEvent::Tick);
+                    return ClientEvent::Tick;
                 }
                 _ => {
                     println!("How did we get here?");
                 }
             }
         }
+    }
+
+    fn get_sender(&mut self) -> mpsc::Sender<ClientEvent> {
+        return self.to_server_sender.clone();
     }
 }
 
