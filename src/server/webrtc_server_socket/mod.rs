@@ -28,8 +28,6 @@ const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
 pub struct WebrtcServerSocket {
     to_server_sender: mpsc::Sender<ClientEvent>,
     to_server_receiver: mpsc::Receiver<ClientEvent>,
-    to_client_sender: mpsc::Sender<ClientEvent>,
-    to_client_receiver: mpsc::Receiver<ClientEvent>,
     to_client_event_receiver: mpsc::Receiver<RtcEvent>,
     periodic_timer: Interval,
     rtc_server: RtcServer,
@@ -52,15 +50,12 @@ impl ServerSocket for WebrtcServerSocket {
         let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
         let (to_server_sender, to_server_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
-        let (to_client_sender, to_client_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
 
         let (rtc_server, to_client_event_receiver) = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
         let socket = WebrtcServerSocket {
             to_server_sender,
             to_server_receiver,
-            to_client_sender,
-            to_client_receiver,
             rtc_server,
             to_client_event_receiver,
             message_buf: vec![0; 0x10000],
@@ -133,8 +128,8 @@ impl ServerSocket for WebrtcServerSocket {
                 let timer_next = self.periodic_timer.tick().fuse();
                 pin_mut!(timer_next);
 
-                let to_client_receiver_next = self.to_client_receiver.next().fuse();
-                pin_mut!(to_client_receiver_next);
+                let to_server_receiver_next = self.to_server_receiver.next().fuse();
+                pin_mut!(to_server_receiver_next);
 
                 let rtc_event_receiver_next = self.to_client_event_receiver.next().fuse();
                 pin_mut!(rtc_event_receiver_next);
@@ -150,7 +145,7 @@ impl ServerSocket for WebrtcServerSocket {
                             incoming_message
                         )
                     }
-                    outgoing_message = to_client_receiver_next => {
+                    outgoing_message = to_server_receiver_next => {
                         Next::OutgoingMessage(
                             outgoing_message.expect("to client message receiver closed")
                         )
@@ -198,7 +193,7 @@ impl ServerSocket for WebrtcServerSocket {
                         message.into_bytes().as_slice(),
                         MessageType::Text,
                         &address
-                    ).await;
+                    ).await?;
                 }
                 Next::PeriodicTimer => {
                     return Ok(ClientEvent::Tick);
