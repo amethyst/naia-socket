@@ -24,27 +24,25 @@ impl Server {
 
         loop {
             match server_socket.receive().await {
-                Ok(ClientEvent::Connection(address)) => {
+                ClientEvent::Connection(address) => {
                     println!("Server on_connection(), connected to {}", address);
 
                     let msg: String = "hello new client!".to_string();
-                    if let Err(err) = sender.send(ClientEvent::Message(address, msg)).await {
-                        println!("error!");
-                    }
+                    sender.send(ClientEvent::Message(address, msg)).await
+                        .expect("send error");
                 }
-                Ok(ClientEvent::Disconnection(address)) => {
+                ClientEvent::Disconnection(address) => {
                     println!("Server on_disconnection(): {:?}", address);
                 }
-                Ok(ClientEvent::Message(address, message)) => {
+                ClientEvent::Message(address, message) => {
                     println!("Server on_receive(): {}", message);
 
                     println!("Server send(): {}", message);
-                    if let Err(err) = sender.send(ClientEvent::Message(address, message)).await {
-                        println!("error!");
-                    }
+                    sender.send(ClientEvent::Message(address, message))
+                        .await.expect("send error");
                 }
-                Ok(ClientEvent::Tick) => {}
-                Err(error) => {}
+                ClientEvent::Tick => {}
+                ClientEvent::Error(error) => {}
             }
         }
 
