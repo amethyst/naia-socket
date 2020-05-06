@@ -15,9 +15,10 @@ impl Server {
     pub async fn new() -> Server { //args should take a shared config, and a port
 
         let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
-        println!("Webserver Listening on: {}", current_socket_address);
 
         let mut server_socket = ServerSocketImpl::bind(current_socket_address.as_str()).await;
+
+        println!("Webserver Listening on: {}", current_socket_address);
 
         let mut sender = server_socket.get_sender();
 
