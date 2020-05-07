@@ -20,14 +20,16 @@ use tokio::time::{self, Interval};
 
 use crate::server::ServerSocket;
 use super::client_event::ClientEvent;
+use super::client_message::ClientMessage;
+use super::message_sender::MessageSender;
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 const EVENT_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct WebrtcServerSocket {
-    to_server_sender: mpsc::Sender<ClientEvent>,
-    to_server_receiver: mpsc::Receiver<ClientEvent>,
+    to_server_sender: mpsc::Sender<ClientMessage>,
+    to_server_receiver: mpsc::Receiver<ClientMessage>,
     to_client_event_receiver: mpsc::Receiver<RtcEvent>,
     periodic_timer: Interval,
     rtc_server: RtcServer,
@@ -115,7 +117,7 @@ impl ServerSocket for WebrtcServerSocket {
         enum Next {
             ToClientEvent(RtcEvent),
             ToClientMessage(Result<MessageResult, RecvError>),
-            ToServerMessage(ClientEvent),
+            ToServerMessage(ClientMessage),
             PeriodicTimer,
         }
 
@@ -183,7 +185,7 @@ impl ServerSocket for WebrtcServerSocket {
                         }
                     }
                 }
-                Next::ToServerMessage(ClientEvent::Message(address, message)) => {
+                Next::ToServerMessage((address, message)) => {
                     if let Err(err) = self.rtc_server.send(
                         message.into_bytes().as_slice(),
                         MessageType::Text,
@@ -202,8 +204,8 @@ impl ServerSocket for WebrtcServerSocket {
         }
     }
 
-    fn get_sender(&mut self) -> mpsc::Sender<ClientEvent> {
-        return self.to_server_sender.clone();
+    fn get_sender(&mut self) -> MessageSender {
+        return MessageSender::new(self.to_server_sender.clone());
     }
 }
 

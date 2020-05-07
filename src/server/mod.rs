@@ -1,9 +1,12 @@
 
 use async_trait::async_trait;
-use futures_channel::mpsc;
 
 mod client_event;
 pub use client_event::ClientEvent;
+mod client_message;
+pub use client_message::ClientMessage;
+mod message_sender;
+pub use message_sender::MessageSender;
 
 #[async_trait]
 pub trait ServerSocket {
@@ -11,7 +14,7 @@ pub trait ServerSocket {
 
     async fn receive(&mut self) -> ClientEvent;
 
-    fn get_sender(&mut self) -> mpsc::Sender<ClientEvent>;
+    fn get_sender(&mut self) -> MessageSender;
 }
 
 /// Proto Linux Server
