@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 use std::collections::VecDeque;
-use std::borrow::Borrow;
 
 pub struct ServerSocket {
     pub address: SocketAddr,

@@ -2,13 +2,11 @@
 use crate::client::{ClientSocket};
 use super::server_socket::ServerSocket;
 
-use std::io::stdin;
-use std::thread;
 use std::time::Instant;
 use std::net::SocketAddr;
 use log::error;
 
-use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
+use crossbeam_channel::{Sender as ChannelSender};
 use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
 use std::{time};
 use std::borrow::Borrow;
