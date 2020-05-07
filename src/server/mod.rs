@@ -1,6 +1,5 @@
 
 use std::net::{SocketAddr};
-use futures_util::{SinkExt};
 
 use gaia_socket::{ServerSocket, ServerSocketImpl, ClientEvent};
 use crate::internal_shared::find_ip_address;
@@ -28,7 +27,7 @@ impl Server {
                     println!("Server on_connection(), connected to {}", address);
 
                     let msg: String = "hello new client!".to_string();
-                    sender.send(ClientEvent::Message(address, msg)).await
+                    sender.send((address, msg)).await
                         .expect("send error");
                 }
                 ClientEvent::Disconnection(address) => {
@@ -38,7 +37,7 @@ impl Server {
                     println!("Server on_receive(): {}", message);
 
                     println!("Server send(): {}", message);
-                    sender.send(ClientEvent::Message(address, message))
+                    sender.send((address, message))
                         .await.expect("send error");
                 }
                 ClientEvent::Tick => {}
