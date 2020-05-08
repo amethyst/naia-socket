@@ -1,61 +1,50 @@
 
-use crate::client::{ClientSocket};
-use super::server_socket::ServerSocket;
-
 use std::time::Instant;
 use std::net::SocketAddr;
-use log::error;
-
-use crossbeam_channel::{Sender as ChannelSender};
-use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
+use std::fmt;
 use std::{time};
 use std::borrow::Borrow;
+use std::error::Error;
+
+use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
+use laminar::{ErrorKind, Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent, Config as LaminarConfig};
+use log::error;
+
+use crate::client::{ClientSocket};
+use super::server_event::ServerEvent;
+use super::message_sender::MessageSender;
+
+#[derive(Debug)]
+pub struct StringError {
+    msg: String,
+}
+
+impl fmt::Display for StringError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.msg)
+    }
+}
+
+impl Error for StringError {}
 
 pub struct UdpClientSocket {
-    client_socket: Option<LaminarSocket>,
-    server_socket: Option<Box<ServerSocket>>,
-    connect_function: Option<Box<dyn Fn(&ServerSocket)>>,
-    receive_function: Option<Box<dyn Fn(&ServerSocket, &str)>>,
-    disconnect_function: Option<Box<dyn Fn()>>,
+    address: SocketAddr,
+    sender: ChannelSender<LaminarPacket>,
+    receiver: ChannelReceiver<SocketEvent>
 }
 
 impl ClientSocket for UdpClientSocket {
-    fn new() -> UdpClientSocket {
+    fn bind(address: &str) -> UdpClientSocket {
         println!("Hello UdpClientSocket!");
 
-        let new_client_socket = UdpClientSocket {
-            client_socket: None,
-            server_socket: None,
-            connect_function: None,
-            receive_function: None,
-            disconnect_function: None
-        };
-
-        new_client_socket
-    }
-
-    fn connect(&mut self, address: &str) {
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
-        self.client_socket = Some(LaminarSocket::bind_with_config("127.0.0.1:12352", config).unwrap());
-        println!("ClientSocket.connect() {}", "127.0.0.1:12352");
+        let mut client_socket = LaminarSocket::bind_with_config("127.0.0.1:12352", config).unwrap();
+        println!("ClientSocket.bind() {}", "127.0.0.1:12352");
+
+        let sender: ChannelSender<LaminarPacket> = client_socket.get_packet_sender();
 
         let server_address: SocketAddr = address.parse().unwrap();
-        let sender: ChannelSender<LaminarPacket> = self.client_socket.as_ref().unwrap().get_packet_sender();
-
-        //Trying to wrap the crossbeam ChannelSender struct into my own ServerSocket impl...
-        let cloned_address: SocketAddr = server_address.clone();
-        let cloned_sender = sender.clone();
-        let server_socket: ServerSocket = ServerSocket::new(cloned_address, move |msg| {
-            let msg_string: String = msg.to_string();
-            let packet = LaminarPacket::reliable_unordered(
-                cloned_address,
-                msg_string.clone().into_bytes()
-            );
-            cloned_sender.send(packet);
-        });
-        self.server_socket = Some(Box::new(server_socket));
-        ///////
 
         //Send initial server handshake
         let line: String = "client-handshake-request".to_string();
@@ -64,76 +53,66 @@ impl ClientSocket for UdpClientSocket {
             server_address,
             line.clone().into_bytes(),
         ));
-        ///////
 
-        self.client_socket.as_mut().unwrap().manual_poll(Instant::now());
-    }
+        client_socket.manual_poll(Instant::now());
 
-    fn send(&mut self, msg: &str) {
-        if self.server_socket.as_ref().unwrap().connected {
-            self.server_socket.as_ref().unwrap().send(msg);
-        }
-        else {
-            self.server_socket.as_mut().unwrap().add_to_send_queue(msg);
+        UdpClientSocket {
+            address: server_address,
+            sender,
+            receiver: client_socket.get_event_receiver(),
         }
     }
 
-    fn update(&mut self) {
-        self.server_socket.as_mut().unwrap().process_send_queue();
-
-        self.client_socket.as_mut().unwrap().manual_poll(Instant::now());
-
-        while let Some(event) = self.client_socket.as_mut().unwrap().recv() {
-            match event {
-                SocketEvent::Connect(address) => {
-                    // SHOULD NOT EVER GET HERE!
-                    error!("Client Socket has received a packet from an unknown host!");
-                }
-                SocketEvent::Packet(packet) => {
-                    if packet.addr() == self.server_socket.as_ref().unwrap().address {
-                        let msg = String::from_utf8_lossy(packet.payload());
-
-                        let server_handshake_str = "server-handshake-response".to_string();
-                        if msg.eq(server_handshake_str.as_str()) {
-                            if !self.server_socket.as_ref().unwrap().connected {
-                                self.server_socket.as_mut().unwrap().connected = true;
-                                (self.connect_function.as_ref().unwrap())(self.server_socket.as_ref().unwrap());
-                            }
+    fn receive(&mut self) -> ServerEvent {
+        match self.receiver.recv() {
+            Ok(event) => {
+                match event {
+                    SocketEvent::Connect(address) => {
+                        // SHOULD NOT EVER GET HERE!, get a server-handshake-response instead!
+                        error!("Client Socket has received a packet from an unknown host!");
+                        return ServerEvent::Error(Box::new(StringError { msg: "Client Socket has received a packet from an unknown host!".to_string() }));
+                    }
+                    SocketEvent::Packet(packet) => {
+                        if packet.addr() == self.address {
+                            let msg = String::from_utf8_lossy(packet.payload());
+                            return ServerEvent::Message(packet.addr(), msg.to_string());
+                        } else {
+                            println!("Unknown sender.");
+                            return ServerEvent::Error(Box::new(StringError { msg: "Unknown sender.".to_string() }));
                         }
-                        else {
-                            (self.receive_function.as_ref().unwrap())(self.server_socket.as_ref().unwrap(), &msg);
-                        }
-                    } else {
-                        println!("Unknown sender.");
+                    }
+                    SocketEvent::Timeout(address) => {
+
+                        return ServerEvent::Disconnection(address);
                     }
                 }
-                SocketEvent::Timeout(address) => {
-                    if self.server_socket.as_ref().unwrap().connected {
-                        self.server_socket.as_mut().unwrap().connected = false;
-                        (self.disconnect_function.as_ref().unwrap())();
-                    }
-                }
+            }
+            Err(error) => {
+                return ServerEvent::Error(Box::new(error));
             }
         }
     }
 
-    fn disconnect(&self) {
-        unimplemented!()
-    }
-
-    fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static) {
-        self.connect_function = Some(Box::new(func));
-    }
-
-    fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static) {
-        self.receive_function = Some(Box::new(func));
-    }
-
-    fn on_error(&mut self, func: impl Fn(&ServerSocket, &str)) {
-        unimplemented!()
-    }
-
-    fn on_disconnection(&mut self, func: impl Fn() + 'static) {
-        self.disconnect_function = Some(Box::new(func));
+    fn get_sender(&mut self) -> MessageSender {
+        return MessageSender::new(self.address, self.sender.clone());
     }
 }
+
+// In Receive
+//                        let server_handshake_str = "server-handshake-response".to_string();
+//                        if msg.eq(server_handshake_str.as_str()) {
+//                            if !self.server_socket.as_ref().unwrap().connected {
+//                                self.server_socket.as_mut().unwrap().connected = true;
+//                                (self.connect_function.as_ref().unwrap())(self.server_socket.as_ref().unwrap());
+//                            }
+//                        }
+//                        else {
+//                            (self.receive_function.as_ref().unwrap())(self.server_socket.as_ref().unwrap(), &msg);
+//                        }
+
+
+// In Disconnect
+//                        if self.server_socket.as_ref().unwrap().connected {
+//                            self.server_socket.as_mut().unwrap().connected = false;
+//                            (self.disconnect_function.as_ref().unwrap())();
+//                        }

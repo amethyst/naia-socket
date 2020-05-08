@@ -10,7 +10,7 @@ pub use message_sender::MessageSender;
 
 #[async_trait]
 pub trait ServerSocket {
-    async fn bind(address: &str) -> ServerSocketImpl;
+    async fn bind(address: &str) -> Self;
 
     async fn receive(&mut self) -> ClientEvent;
 

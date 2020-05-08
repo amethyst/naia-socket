@@ -54,7 +54,3 @@ impl MessageSender {
         }
     }
 }
-
-//#[cfg(feature = "UdpServer")]
-
-//#[cfg(feature = "WebrtcServer")]

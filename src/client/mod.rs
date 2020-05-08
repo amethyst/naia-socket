@@ -1,25 +1,15 @@
 
-mod server_socket;
-use server_socket::ServerSocket;
+mod server_event;
+pub use server_event::ServerEvent;
+mod message_sender;
+pub use message_sender::MessageSender;
 
 pub trait ClientSocket {
-    fn new() -> Self;
+    fn bind(address: &str) -> Self;
 
-    fn connect(&mut self, address: &str);
+    fn receive(&mut self) -> ServerEvent;
 
-    fn send(&mut self, msg: &str);
-
-    fn update(&mut self);
-
-    fn disconnect(&self);
-
-    fn on_connection(&mut self, func: impl Fn(&ServerSocket) + 'static);
-
-    fn on_receive(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
-
-    fn on_error(&mut self, func: impl Fn(&ServerSocket, &str) + 'static);
-
-    fn on_disconnection(&mut self, func: impl Fn() + 'static);
+    fn get_sender(&mut self) -> MessageSender;
 }
 
 /// UDP Client ///
