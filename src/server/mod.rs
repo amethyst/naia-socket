@@ -2,9 +2,8 @@
 use std::net::{SocketAddr};
 
 use gaia_socket::{ServerSocket, ServerSocketImpl, ClientEvent};
-use crate::internal_shared::find_ip_address;
-
-const DEFAULT_PORT: &str = "3179";
+use crate::internal_shared::find_my_ip_address;
+use crate::internal_shared::SERVER_PORT;
 
 pub struct Server {
     //socket: ServerSocketImpl
@@ -13,11 +12,11 @@ pub struct Server {
 impl Server {
     pub async fn new() -> Server { //args should take a shared config, and a port
 
-        let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
+        let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
         let mut server_socket = ServerSocketImpl::bind(current_socket_address.as_str()).await;
 
-        println!("Webserver Listening on: {}", current_socket_address);
+        println!("Server listening on: {}", current_socket_address);
 
         let mut sender = server_socket.get_sender();
 

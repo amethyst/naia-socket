@@ -1,42 +1,50 @@
 
-use gaia_socket::{ClientSocket, ClientSocketImpl};
-use crate::internal_shared::find_ip_address;
+use gaia_socket::{ClientSocket, ClientSocketImpl, ServerEvent};
+use crate::internal_shared::find_my_ip_address;
 
-const DEFAULT_PORT: &str = "3179";
+use crate::internal_shared::SERVER_PORT;
 
 pub struct Client {
-    socket: ClientSocketImpl
+    //socket: ClientSocketImpl
 }
 
 impl Client {
     pub fn new() -> Client {
 
-        let mut client_socket = ClientSocketImpl::new();
+        let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
+        let mut client_socket = ClientSocketImpl::bind(current_socket_address.as_str());
 
-        client_socket.on_connection(|sender| {
-            println!("Client on_connection()");
-        });
+        println!("Connecting to server at: {}", current_socket_address);
 
-        client_socket.on_receive(|sender, msg| {
-            println!("Client on_receive(): {:?}", msg);
-        });
+        let mut sender = client_socket.get_sender();
 
-        client_socket.on_disconnection(|| {
-            println!("Client on_disconnection()");
-        });
+        sender.send("just one extra post-connect message...".to_string());
 
-        let current_socket_address = find_ip_address::get() + ":" + DEFAULT_PORT;
-        client_socket.connect(current_socket_address.as_str());
-
-        client_socket.send("just one extra post-connect message...");
+        loop {
+            match client_socket.receive() {
+                ServerEvent::Connection(address) => {
+                    println!("Client on_connection()");
+                }
+                ServerEvent::Disconnection(address) => {
+                    println!("Client on_disconnection()");
+                }
+                ServerEvent::Message(address, message) => {
+                    println!("Client on_receive(): {:?}", message);
+                }
+                ServerEvent::Error(error) => {}
+                ServerEvent::None => {
+                    //break;
+                }
+            }
+        }
 
         Client {
-            socket: client_socket
+            //socket: client_socket
         }
     }
 
     pub fn update(&mut self) {
-        self.socket.update();
+
     }
 
     pub fn on_connect(&mut self, func: fn()) {
