@@ -7,10 +7,10 @@ pub mod shared;
 mod client;
 
 #[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-pub use client::{ClientSocket, ClientSocketImpl, ServerEvent};
+pub use client::{ClientSocket, ClientSocketImpl, SocketEvent};
 
 #[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
 mod server;
 
 #[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-pub use server::{ServerSocket, ServerSocketImpl, ClientEvent};
+pub use server::{ServerSocket, ServerSocketImpl, SocketEvent};

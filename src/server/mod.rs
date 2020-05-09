@@ -1,8 +1,8 @@
 
 use async_trait::async_trait;
 
-mod client_event;
-pub use client_event::ClientEvent;
+mod socket_event;
+pub use socket_event::SocketEvent;
 mod client_message;
 pub use client_message::ClientMessage;
 mod message_sender;
@@ -12,7 +12,7 @@ pub use message_sender::MessageSender;
 pub trait ServerSocket {
     async fn bind(address: &str) -> Self;
 
-    async fn receive(&mut self) -> ClientEvent;
+    async fn receive(&mut self) -> SocketEvent;
 
     fn get_sender(&mut self) -> MessageSender;
 }

@@ -1,13 +1,13 @@
 
-mod server_event;
-pub use server_event::ServerEvent;
+mod socket_event;
+pub use socket_event::SocketEvent;
 mod message_sender;
 pub use message_sender::MessageSender;
 
 pub trait ClientSocket {
     fn bind(address: &str) -> Self;
 
-    fn receive(&mut self) -> ServerEvent;
+    fn receive(&mut self) -> SocketEvent;
 
     fn get_sender(&mut self) -> MessageSender;
 }

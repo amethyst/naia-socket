@@ -19,7 +19,7 @@ use futures_util::{pin_mut, select, FutureExt, StreamExt};
 use tokio::time::{self, Interval};
 
 use crate::server::ServerSocket;
-use super::client_event::ClientEvent;
+use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 
@@ -53,8 +53,12 @@ impl ServerSocket for WebrtcServerSocket {
 
         let (to_server_sender, to_server_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
 
-        let (rtc_server, to_client_event_receiver) = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
+        let mut rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
+
+        let to_client_event_receiver = rtc_server.get_event_receiver()
+            .expect("could not get new event receiver");
+
         let socket = WebrtcServerSocket {
             to_server_sender,
             to_server_receiver,
@@ -112,7 +116,7 @@ impl ServerSocket for WebrtcServerSocket {
         socket
     }
 
-    async fn receive(&mut self) -> ClientEvent {
+    async fn receive(&mut self) -> SocketEvent {
 
         enum Next {
             ToClientEvent(RtcEvent),
@@ -162,10 +166,10 @@ impl ServerSocket for WebrtcServerSocket {
                 Next::ToClientEvent(to_client_event) => {
                     match to_client_event {
                         RtcEvent::Connection(address) => {
-                            return ClientEvent::Connection(address);
+                            return SocketEvent::Connection(address);
                         }
                         RtcEvent::Disconnection(address) => {
-                            return ClientEvent::Disconnection(address);
+                            return SocketEvent::Disconnection(address);
                         }
                     }
                 }
@@ -178,10 +182,10 @@ impl ServerSocket for WebrtcServerSocket {
 
                             let message = String::from_utf8_lossy(packet_payload);
 
-                            return ClientEvent::Message(address, message.to_string());
+                            return SocketEvent::Message(address, message.to_string());
                         }
                         Err(err) => {
-                            return ClientEvent::Error(Box::new(err));
+                            return SocketEvent::Error(Box::new(err));
                         }
                     }
                 }
@@ -191,11 +195,11 @@ impl ServerSocket for WebrtcServerSocket {
                         MessageType::Text,
                         &address
                     ).await {
-                        return ClientEvent::Error(Box::new(err));
+                        return SocketEvent::Error(Box::new(err));
                     }
                 }
                 Next::PeriodicTimer => {
-                    return ClientEvent::Tick;
+                    return SocketEvent::Tick;
                 }
                 _ => {
                     println!("How did we get here?");
