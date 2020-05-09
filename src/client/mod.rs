@@ -1,4 +1,6 @@
 
+use std::net::SocketAddr;
+
 mod socket_event;
 pub use socket_event::SocketEvent;
 mod message_sender;
@@ -10,6 +12,8 @@ pub trait ClientSocket {
     fn receive(&mut self) -> SocketEvent;
 
     fn get_sender(&mut self) -> MessageSender;
+
+    fn server_address(&self) -> SocketAddr;
 }
 
 /// UDP Client ///

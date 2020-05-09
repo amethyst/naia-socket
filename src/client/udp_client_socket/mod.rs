@@ -82,10 +82,10 @@ impl ClientSocket for UdpClientSocket {
                             let msg = String::from_utf8_lossy(packet.payload());
 
                             if msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                                return SocketEvent::Connection(packet.addr());
+                                return SocketEvent::Connection();
                             }
                             else {
-                                return SocketEvent::Message(packet.addr(), msg.to_string());
+                                return SocketEvent::Message(msg.to_string());
                             }
                         } else {
                             println!("Unknown sender.");
@@ -94,7 +94,7 @@ impl ClientSocket for UdpClientSocket {
                     }
                     LaminarEvent::Timeout(address) => {
 
-                        return SocketEvent::Disconnection(address);
+                        return SocketEvent::Disconnection();
                     }
                 }
             }
@@ -106,5 +106,9 @@ impl ClientSocket for UdpClientSocket {
 
     fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.address, self.sender.clone());
+    }
+
+    fn server_address(&self) -> SocketAddr {
+        return self.address;
     }
 }
