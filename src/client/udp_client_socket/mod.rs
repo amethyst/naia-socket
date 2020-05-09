@@ -56,7 +56,8 @@ impl ClientSocket for UdpClientSocket {
         sender.send(LaminarPacket::reliable_unordered(
             server_address,
             line.clone().into_bytes(),
-        ));
+        ))
+            .expect("failure sending client handshake");
 
         let _thread = thread::spawn(move || client_socket.start_polling());
 
