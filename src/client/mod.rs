@@ -3,6 +3,10 @@ use gaia_socket::client::{ClientSocket, ClientSocketImpl, SocketEvent};
 use gaia_socket::shared::{find_my_ip_address};
 
 use crate::internal_shared::SERVER_PORT;
+use crate::internal_shared::PING_MSG;
+use crate::internal_shared::PONG_MSG;
+
+use std::{thread, time};
 
 pub struct Client {
     //socket: ClientSocketImpl
@@ -20,13 +24,21 @@ impl Client {
             match client_socket.receive() {
                 SocketEvent::Connection(address) => {
                     println!("Client connected to: {}", address);
-                    //sender.send("just one extra post-connect message...".to_string());
+                    sender.send(PING_MSG.to_string());
                 }
                 SocketEvent::Disconnection(address) => {
                     println!("Client disconnected");
                 }
                 SocketEvent::Message(address, message) => {
                     println!("Client received: {:?}", message);
+
+                    if message.eq(PONG_MSG) {
+                        thread::sleep(time::Duration::from_millis(1000));
+                        let to_server_message: String = PING_MSG.to_string();
+                        println!("Client send: {}", to_server_message);
+                        sender.send(to_server_message)
+                            .expect("send error");
+                    }
                 }
                 SocketEvent::Error(error) => {
                     println!("Client error: {}", error);

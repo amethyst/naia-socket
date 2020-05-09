@@ -5,6 +5,8 @@ use gaia_socket::server::{ServerSocket, ServerSocketImpl, SocketEvent};
 use gaia_socket::shared::{find_my_ip_address};
 
 use crate::internal_shared::SERVER_PORT;
+use crate::internal_shared::PING_MSG;
+use crate::internal_shared::PONG_MSG;
 
 pub struct Server {
     //socket: ServerSocketImpl
@@ -28,11 +30,14 @@ impl Server {
                     println!("Server disconnected from: {:?}", address);
                 }
                 SocketEvent::Message(address, message) => {
-                    println!("Server received: {}", message);
+                    println!("Server received from {}: {}", address, message);
 
-                    println!("Server send(): {}", message);
-                    sender.send((address, message))
-                        .await.expect("send error");
+                    if message.eq(PING_MSG) {
+                        let to_client_message: String = PONG_MSG.to_string();
+                        println!("Server send to {}: {}", address, to_client_message);
+                        sender.send((address, to_client_message))
+                            .await.expect("send error");
+                    }
                 }
                 SocketEvent::Tick => {
 
