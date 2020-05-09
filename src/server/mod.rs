@@ -1,8 +1,9 @@
 
 use std::net::{SocketAddr};
 
-use gaia_socket::{ServerSocket, ServerSocketImpl, SocketEvent};
-use crate::internal_shared::find_my_ip_address;
+use gaia_socket::server::{ServerSocket, ServerSocketImpl, SocketEvent};
+use gaia_socket::shared::{find_my_ip_address};
+
 use crate::internal_shared::SERVER_PORT;
 
 pub struct Server {
@@ -10,7 +11,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new() -> Server { //args should take a shared config, and a port
+    pub async fn new() -> Server {
 
         let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
@@ -47,34 +48,34 @@ impl Server {
         }
     }
 
-    pub fn update(&mut self) {
-
-    }
-
-    pub fn connect(&self, listen_addr: SocketAddr) { //put a port in here..
-
-    }
-
-    pub fn on_connect(&self, func: fn()) { //function should have client, clientData, and callback?
-
-    }
-
-    pub fn on_disconnect(&self, func: fn()) { //function should have client
-
-    }
-
-    pub fn add_object(&self) {
-
-    }
-
-    pub fn remove_object(&self) {
-
-    }
-
-    pub fn send_message(&self) {
-
-    }
-
-    pub fn receive_message(&self) {
-    }
+//    pub fn update(&mut self) {
+//
+//    }
+//
+//    pub fn connect(&self, listen_addr: SocketAddr) { //put a port in here..
+//
+//    }
+//
+//    pub fn on_connect(&self, func: fn()) { //function should have client, clientData, and callback?
+//
+//    }
+//
+//    pub fn on_disconnect(&self, func: fn()) { //function should have client
+//
+//    }
+//
+//    pub fn add_object(&self) {
+//
+//    }
+//
+//    pub fn remove_object(&self) {
+//
+//    }
+//
+//    pub fn send_message(&self) {
+//
+//    }
+//
+//    pub fn receive_message(&self) {
+//    }
 }

@@ -1,6 +1,6 @@
 
-use gaia_socket::{ClientSocket, ClientSocketImpl, SocketEvent};
-use crate::internal_shared::find_my_ip_address;
+use gaia_socket::client::{ClientSocket, ClientSocketImpl, SocketEvent};
+use gaia_socket::shared::{find_my_ip_address};
 
 use crate::internal_shared::SERVER_PORT;
 
@@ -43,27 +43,27 @@ impl Client {
         }
     }
 
-    pub fn update(&mut self) {
-
-    }
-
-    pub fn on_connect(&mut self, func: fn()) {
-
-    }
-
-    pub fn on_disconnect(&mut self, func: fn()) {
-
-    }
-
-    pub fn connect(&mut self) {
-
-    }
-
-    pub fn queue_message(&mut self) {
-
-    }
-
-    pub fn receive(&mut self) {
-
-    }
+//    pub fn update(&mut self) {
+//
+//    }
+//
+//    pub fn on_connect(&mut self, func: fn()) {
+//
+//    }
+//
+//    pub fn on_disconnect(&mut self, func: fn()) {
+//
+//    }
+//
+//    pub fn connect(&mut self) {
+//
+//    }
+//
+//    pub fn queue_message(&mut self) {
+//
+//    }
+//
+//    pub fn receive(&mut self) {
+//
+//    }
 }
