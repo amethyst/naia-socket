@@ -13,6 +13,7 @@ use crate::client::{ClientSocket};
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::internal_shared::{CLIENT_HANDSHAKE_MESSAGE, SERVER_HANDSHAKE_MESSAGE};
+use crate::shared::{find_my_ip_address, find_available_port};
 
 #[derive(Debug)]
 pub struct StringError {
@@ -38,8 +39,13 @@ impl ClientSocket for UdpClientSocket {
 
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
-        let mut client_socket = LaminarSocket::bind_with_config("127.0.0.1:12352", config).unwrap();
-        println!("UDP Client bound to: {}", "127.0.0.1:12352");
+
+        let client_ip_address = find_my_ip_address::get();
+        let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
+        let client_socket_address = client_ip_address + ":" + free_socket.to_string().as_str();
+        println!("UDP Client bound to: {}", client_socket_address);
+
+        let mut client_socket = LaminarSocket::bind_with_config(client_socket_address, config).unwrap();
 
         let (sender, receiver): (ChannelSender<LaminarPacket>, ChannelReceiver<LaminarEvent>) = (client_socket.get_packet_sender(), client_socket.get_event_receiver());
 
