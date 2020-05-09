@@ -1,5 +1,5 @@
 
-use gaia_socket::{ClientSocket, ClientSocketImpl, ServerEvent};
+use gaia_socket::{ClientSocket, ClientSocketImpl, SocketEvent};
 use crate::internal_shared::find_my_ip_address;
 
 use crate::internal_shared::SERVER_PORT;
@@ -14,25 +14,25 @@ impl Client {
         let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
         let mut client_socket = ClientSocketImpl::bind(current_socket_address.as_str());
 
-        println!("Connecting to server at: {}", current_socket_address);
-
         let mut sender = client_socket.get_sender();
-
-        sender.send("just one extra post-connect message...".to_string());
 
         loop {
             match client_socket.receive() {
-                ServerEvent::Connection(address) => {
-                    println!("Client on_connection()");
+                SocketEvent::Connection(address) => {
+                    println!("Client connected to: {}", address);
+                    //sender.send("just one extra post-connect message...".to_string());
                 }
-                ServerEvent::Disconnection(address) => {
-                    println!("Client on_disconnection()");
+                SocketEvent::Disconnection(address) => {
+                    println!("Client disconnected");
                 }
-                ServerEvent::Message(address, message) => {
-                    println!("Client on_receive(): {:?}", message);
+                SocketEvent::Message(address, message) => {
+                    println!("Client received: {:?}", message);
                 }
-                ServerEvent::Error(error) => {}
-                ServerEvent::None => {
+                SocketEvent::Error(error) => {
+                    println!("Client error: {}", error);
+                }
+                SocketEvent::None => {
+                    println!("Client no event");
                     //break;
                 }
             }

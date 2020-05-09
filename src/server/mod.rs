@@ -1,7 +1,7 @@
 
 use std::net::{SocketAddr};
 
-use gaia_socket::{ServerSocket, ServerSocketImpl, ClientEvent};
+use gaia_socket::{ServerSocket, ServerSocketImpl, SocketEvent};
 use crate::internal_shared::find_my_ip_address;
 use crate::internal_shared::SERVER_PORT;
 
@@ -16,31 +16,29 @@ impl Server {
 
         let mut server_socket = ServerSocketImpl::bind(current_socket_address.as_str()).await;
 
-        println!("Server listening on: {}", current_socket_address);
-
         let mut sender = server_socket.get_sender();
 
         loop {
             match server_socket.receive().await {
-                ClientEvent::Connection(address) => {
-                    println!("Server on_connection(), connected to {}", address);
-
-                    let msg: String = "hello new client!".to_string();
-                    sender.send((address, msg)).await
-                        .expect("send error");
+                SocketEvent::Connection(address) => {
+                    println!("Server connected to: {}", address);
                 }
-                ClientEvent::Disconnection(address) => {
-                    println!("Server on_disconnection(): {:?}", address);
+                SocketEvent::Disconnection(address) => {
+                    println!("Server disconnected from: {:?}", address);
                 }
-                ClientEvent::Message(address, message) => {
-                    println!("Server on_receive(): {}", message);
+                SocketEvent::Message(address, message) => {
+                    println!("Server received: {}", message);
 
                     println!("Server send(): {}", message);
                     sender.send((address, message))
                         .await.expect("send error");
                 }
-                ClientEvent::Tick => {}
-                ClientEvent::Error(error) => {}
+                SocketEvent::Tick => {
+
+                }
+                SocketEvent::Error(error) => {
+                    println!("Server Error: {}", error);
+                }
             }
         }
 
