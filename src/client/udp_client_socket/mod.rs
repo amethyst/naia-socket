@@ -72,7 +72,7 @@ impl ClientSocket for UdpClientSocket {
             Ok(event) => {
                 match event {
                     LaminarEvent::Connect(address) => {
-                        // SHOULD NOT EVER GET HERE!, get a server-handshake-response instead!
+                        // SHOULD NOT EVER GET HERE!, get a SERVER_HANDSHAKE_MESSAGE instead!
                         error!("Client Socket has received a packet from an unknown host!");
                         return SocketEvent::Error(Box::new(StringError { msg: "Client Socket has received a packet from an unknown host!".to_string() }));
                     }
