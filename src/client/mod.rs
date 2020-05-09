@@ -30,7 +30,7 @@ impl Client {
                     println!("Client disconnected");
                 }
                 SocketEvent::Message(address, message) => {
-                    println!("Client received: {:?}", message);
+                    println!("Client recv: {:?}", message);
 
                     if message.eq(PONG_MSG) {
                         thread::sleep(time::Duration::from_millis(1000));

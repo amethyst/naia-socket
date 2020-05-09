@@ -30,11 +30,11 @@ impl Server {
                     println!("Server disconnected from: {:?}", address);
                 }
                 SocketEvent::Message(address, message) => {
-                    println!("Server received from {}: {}", address, message);
+                    println!("Server recv <- {}: {}", address, message);
 
                     if message.eq(PING_MSG) {
                         let to_client_message: String = PONG_MSG.to_string();
-                        println!("Server send to {}: {}", address, to_client_message);
+                        println!("Server send -> {}: {}", address, to_client_message);
                         sender.send((address, to_client_message))
                             .await.expect("send error");
                     }
