@@ -13,7 +13,7 @@ pub struct WebrtcClientSocket {
 impl ClientSocket for WebrtcClientSocket {
 
     fn bind(address: &str) -> WebrtcClientSocket {
-        //println!("Hello WebrtcClientSocket!");
+        info!("Hello WebrtcClientSocket!");
 
         WebrtcClientSocket {
             //address: address.parse().unwrap()

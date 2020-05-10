@@ -21,7 +21,7 @@ pub struct UdpServerSocket {
 #[async_trait]
 impl ServerSocket for UdpServerSocket {
     async fn bind(address: &str) -> UdpServerSocket {
-        println!("UDP Server listening on: {}", address);
+        info!("UDP Server listening on: {}", address);
 
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));

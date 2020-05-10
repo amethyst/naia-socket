@@ -39,9 +39,7 @@ pub struct WebrtcServerSocket {
 #[async_trait]
 impl ServerSocket for WebrtcServerSocket {
     async fn bind(address: &str) -> WebrtcServerSocket {
-        println!("Hello WebrtcServerSocket!");
-
-        env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+        info!("Hello WebrtcServerSocket!");
 
         let session_listen_addr: SocketAddr = address
             .parse()
@@ -202,7 +200,7 @@ impl ServerSocket for WebrtcServerSocket {
                     return SocketEvent::Tick;
                 }
                 _ => {
-                    println!("How did we get here?");
+                    warn!("How did we get here?");
                 }
             }
         }
