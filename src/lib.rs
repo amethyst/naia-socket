@@ -1,4 +1,7 @@
 
+#[macro_use]
+extern crate log;
+
 mod internal_shared;
 
 pub mod shared;

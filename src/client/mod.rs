@@ -1,12 +1,12 @@
 
+use std::{thread, time};
+
 use gaia_socket::client::{ClientSocket, ClientSocketImpl, SocketEvent, MessageSender};
+
+#[cfg(feature = "UdpClient")]
 use gaia_socket::shared::{find_my_ip_address};
 
-use crate::internal_shared::SERVER_PORT;
-use crate::internal_shared::PING_MSG;
-use crate::internal_shared::PONG_MSG;
-
-use std::{thread, time};
+use crate::internal_shared;
 
 pub struct Client {
     socket: ClientSocketImpl,
@@ -16,9 +16,20 @@ pub struct Client {
 impl Client {
     pub fn new() -> Client {
 
-        let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
+        internal_shared::init();
 
-        let mut client_socket = ClientSocketImpl::bind(current_socket_address.as_str());
+        log!(log::Level::Info, "client yo whats gonna happen here");
+
+        #[cfg(feature = "UdpClient")]
+        let current_socket_string = (find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT);
+
+        #[cfg(feature = "UdpClient")]
+        let current_socket_address = current_socket_string.as_str();
+
+        #[cfg(feature = "WebrtcClient")]
+        let current_socket_address = "192.168.1.5/3179";
+
+        let mut client_socket = ClientSocketImpl::bind(current_socket_address);
 
         let message_sender = client_socket.get_sender();
 
@@ -30,31 +41,30 @@ impl Client {
 
     pub fn update(&mut self) {
         match self.socket.receive() {
-            SocketEvent::Connection(address) => {
-                println!("Client connected to: {}", address);
-                self.sender.send(PING_MSG.to_string());
+            SocketEvent::Connection() => {
+//                println!("Client connected to: {}", self.socket.server_address());
+//                self.sender.send(internal_shared::PING_MSG.to_string())
+//                    .expect("send error");
             }
-            SocketEvent::Disconnection(address) => {
-                println!("Client disconnected");
+            SocketEvent::Disconnection() => {
+//                println!("Client disconnected from: {}", self.socket.server_address());
             }
-            SocketEvent::Message(address, message) => {
-                println!("Client recv: {:?}", message);
-
-                if message.eq(PONG_MSG) {
-                    thread::sleep(time::Duration::from_millis(1000));
-                    let to_server_message: String = PING_MSG.to_string();
-                    println!("Client send: {}", to_server_message);
-                    self.sender.send(to_server_message)
-                        .expect("send error");
-                }
+            SocketEvent::Message(message) => {
+//                println!("Client recv: {:?}", message);
+//
+//                if message.eq(internal_shared::PONG_MSG) {
+//                    thread::sleep(time::Duration::from_millis(1000));
+//                    let to_server_message: String = internal_shared::PING_MSG.to_string();
+//                    println!("Client send: {}", to_server_message);
+//                    self.sender.send(to_server_message)
+//                        .expect("send error");
+//                }
             }
             SocketEvent::Error(error) => {
-                println!("Client error: {}", error);
-                //break;
+//                println!("Client error: {}", error);
             }
             SocketEvent::None => {
-                println!("Client no event");
-                //break;
+//                println!("Client no event");
             }
         }
     }

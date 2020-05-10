@@ -4,9 +4,7 @@ use std::net::{SocketAddr};
 use gaia_socket::server::{ServerSocket, ServerSocketImpl, SocketEvent};
 use gaia_socket::shared::{find_my_ip_address};
 
-use crate::internal_shared::SERVER_PORT;
-use crate::internal_shared::PING_MSG;
-use crate::internal_shared::PONG_MSG;
+use crate::internal_shared;
 
 pub struct Server {
     //socket: ServerSocketImpl
@@ -15,7 +13,11 @@ pub struct Server {
 impl Server {
     pub async fn new() -> Server {
 
-        let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
+        internal_shared::init();
+
+        log!(log::Level::Info, "server yo whats gonna happen here");
+
+        let current_socket_address = find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT;
 
         let mut server_socket = ServerSocketImpl::bind(current_socket_address.as_str()).await;
 
@@ -32,8 +34,8 @@ impl Server {
                 SocketEvent::Message(address, message) => {
                     println!("Server recv <- {}: {}", address, message);
 
-                    if message.eq(PING_MSG) {
-                        let to_client_message: String = PONG_MSG.to_string();
+                    if message.eq(internal_shared::PING_MSG) {
+                        let to_client_message: String = internal_shared::PONG_MSG.to_string();
                         println!("Server send -> {}: {}", address, to_client_message);
                         sender.send((address, to_client_message))
                             .await.expect("send error");

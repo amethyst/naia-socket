@@ -9,10 +9,14 @@ UdpClient = [ "gaia-socket/UdpClient" ]
 WebrtcClient = [ "gaia-socket/WebrtcClient" ]
 UdpServer = [ "gaia-socket/UdpServer" ]
 WebrtcServer = [ "gaia-socket/WebrtcServer" ]
+Logging = [ "simple_logger", "web_logger" ]
 
 [dependencies]
 gaia-socket = { path = "../gaia-socket" } # { git = "https://github.com/connorcarpenter/gaia-socket" } #
-futures-channel = { version = "0.3", features = ["sink"] }
-futures-core = { version = "0.3" }
-futures-sink = { version = "0.3" }
-futures-util = { version = "0.3", features = ["sink"] }
+log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+simple_logger = { version = "1.4", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web_logger = { version = "0.2", optional = true }
