@@ -62,7 +62,7 @@ impl Client {
                 info!("Client error: {}", error);
             }
             SocketEvent::None => {
-                info!("Client no event");
+                //info!("Client no event");
             }
         }
     }
