@@ -15,8 +15,6 @@ impl Server {
 
         internal_shared::init();
 
-        log!(log::Level::Info, "server yo whats gonna happen here");
-
         let current_socket_address = find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT;
 
         let mut server_socket = ServerSocketImpl::bind(current_socket_address.as_str()).await;
@@ -26,17 +24,17 @@ impl Server {
         loop {
             match server_socket.receive().await {
                 SocketEvent::Connection(address) => {
-                    println!("Server connected to: {}", address);
+                    info!("Server connected to: {}", address);
                 }
                 SocketEvent::Disconnection(address) => {
-                    println!("Server disconnected from: {:?}", address);
+                    info!("Server disconnected from: {:?}", address);
                 }
                 SocketEvent::Message(address, message) => {
-                    println!("Server recv <- {}: {}", address, message);
+                    info!("Server recv <- {}: {}", address, message);
 
                     if message.eq(internal_shared::PING_MSG) {
                         let to_client_message: String = internal_shared::PONG_MSG.to_string();
-                        println!("Server send -> {}: {}", address, to_client_message);
+                        info!("Server send -> {}: {}", address, to_client_message);
                         sender.send((address, to_client_message))
                             .await.expect("send error");
                     }
@@ -45,7 +43,7 @@ impl Server {
 
                 }
                 SocketEvent::Error(error) => {
-                    println!("Server Error: {}", error);
+                    info!("Server Error: {}", error);
                 }
             }
         }

@@ -18,10 +18,8 @@ impl Client {
 
         internal_shared::init();
 
-        log!(log::Level::Info, "client yo whats gonna happen here");
-
         #[cfg(feature = "UdpClient")]
-        let current_socket_string = (find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT);
+        let current_socket_string = find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT;
 
         #[cfg(feature = "UdpClient")]
         let current_socket_address = current_socket_string.as_str();
@@ -42,29 +40,29 @@ impl Client {
     pub fn update(&mut self) {
         match self.socket.receive() {
             SocketEvent::Connection() => {
-//                println!("Client connected to: {}", self.socket.server_address());
-//                self.sender.send(internal_shared::PING_MSG.to_string())
-//                    .expect("send error");
+                info!("Client connected to: {}", self.socket.server_address());
+                self.sender.send(internal_shared::PING_MSG.to_string())
+                    .expect("send error");
             }
             SocketEvent::Disconnection() => {
-//                println!("Client disconnected from: {}", self.socket.server_address());
+                info!("Client disconnected from: {}", self.socket.server_address());
             }
             SocketEvent::Message(message) => {
-//                println!("Client recv: {:?}", message);
-//
-//                if message.eq(internal_shared::PONG_MSG) {
+                info!("Client recv: {}", message);
+
+                if message.eq(internal_shared::PONG_MSG) {
 //                    thread::sleep(time::Duration::from_millis(1000));
-//                    let to_server_message: String = internal_shared::PING_MSG.to_string();
-//                    println!("Client send: {}", to_server_message);
-//                    self.sender.send(to_server_message)
-//                        .expect("send error");
-//                }
+                    let to_server_message: String = internal_shared::PING_MSG.to_string();
+                    info!("Client send: {}", to_server_message);
+                    self.sender.send(to_server_message)
+                        .expect("send error");
+                }
             }
             SocketEvent::Error(error) => {
-//                println!("Client error: {}", error);
+                info!("Client error: {}", error);
             }
             SocketEvent::None => {
-//                println!("Client no event");
+                info!("Client no event");
             }
         }
     }
