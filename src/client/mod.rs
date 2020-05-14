@@ -16,7 +16,8 @@ pub struct Client {
 impl Client {
     pub fn new() -> Client {
 
-        internal_shared::init();
+        // Uncomment the line below to enable logging. You don't need it if something else (e.g. quicksilver) is logging for you
+        //internal_shared::init();
 
         #[cfg(feature = "UdpClient")]
         let current_socket_string = find_my_ip_address::get() + ":" + internal_shared::SERVER_PORT;
