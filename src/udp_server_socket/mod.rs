@@ -6,10 +6,10 @@ use async_trait::async_trait;
 use laminar::{Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig};
 use crossbeam_channel::{self, Receiver, Sender};
 
-use crate::server::{ServerSocket};
+use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use crate::internal_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
+use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
 
 /////
 

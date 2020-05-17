@@ -2,18 +2,15 @@
 #[macro_use]
 extern crate log;
 
-mod internal_shared;
+#[cfg(feature = "use-udp")]
+mod udp_server_socket;
+#[cfg(feature = "use-webrtc")]
+mod webrtc_server_socket;
 
-pub mod shared;
+mod socket_event;
+mod client_message;
+mod message_sender;
+mod server_socket;
 
-#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-pub mod client;
-//
-//#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-//pub use client::{ClientSocket, ClientSocketImpl, SocketEvent};
-
-#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-pub mod server;
-//
-//#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-//pub use server::{ServerSocket, ServerSocketImpl, SocketEvent};
+pub use server_socket::{ServerSocket, ServerSocketImpl};
+pub use socket_event::{SocketEvent};

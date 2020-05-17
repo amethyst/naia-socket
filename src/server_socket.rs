@@ -1,12 +1,9 @@
 
 use async_trait::async_trait;
 
-mod socket_event;
-pub use socket_event::SocketEvent;
-mod client_message;
-pub use client_message::ClientMessage;
-mod message_sender;
-pub use message_sender::MessageSender;
+use super::socket_event::SocketEvent;
+use super::client_message::ClientMessage;
+use super::message_sender::MessageSender;
 
 #[async_trait]
 pub trait ServerSocket {
@@ -18,21 +15,15 @@ pub trait ServerSocket {
 }
 
 /// Proto Linux Server
-#[cfg(feature = "UdpServer")]
-mod udp_server_socket;
+#[cfg(feature = "use-udp")]
+pub use crate::udp_server_socket::UdpServerSocket;
 
-#[cfg(feature = "UdpServer")]
-pub use self::udp_server_socket::UdpServerSocket;
-
-#[cfg(feature = "UdpServer")]
+#[cfg(feature = "use-udp")]
 pub type ServerSocketImpl = UdpServerSocket;
 
 /// Final Server ///
-#[cfg(feature = "WebrtcServer")]
-mod webrtc_server_socket;
-
-#[cfg(feature = "WebrtcServer")]
+#[cfg(feature = "use-webrtc")]
 pub use self::webrtc_server_socket::WebrtcServerSocket;
 
-#[cfg(feature = "WebrtcServer")]
+#[cfg(feature = "use-webrtc")]
 pub type ServerSocketImpl = WebrtcServerSocket;
