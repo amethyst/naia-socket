@@ -1,5 +1,5 @@
 
-use std::{thread, time};
+extern crate log;
 
 use gaia_client_socket::{ClientSocket, ClientSocketImpl, SocketEvent, MessageSender};
 
@@ -33,8 +33,10 @@ pub fn main_common() {
 
     let mut client_socket = ClientSocketImpl::bind(current_socket_address);
 
+    #[cfg(not(target_arch = "wasm32"))]
     let mut message_sender = client_socket.get_sender();
 
+    #[cfg(not(target_arch = "wasm32"))]
     loop {
         match client_socket.receive() {
             SocketEvent::Connection() => {
