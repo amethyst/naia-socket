@@ -18,7 +18,7 @@ use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
 use tokio::time::{self, Interval};
 
-use crate::server::ServerSocket;
+use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;

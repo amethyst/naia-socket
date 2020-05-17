@@ -23,7 +23,7 @@ pub type ServerSocketImpl = UdpServerSocket;
 
 /// Final Server ///
 #[cfg(feature = "use-webrtc")]
-pub use self::webrtc_server_socket::WebrtcServerSocket;
+pub use crate::webrtc_server_socket::WebrtcServerSocket;
 
 #[cfg(feature = "use-webrtc")]
 pub type ServerSocketImpl = WebrtcServerSocket;
