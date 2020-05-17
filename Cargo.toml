@@ -11,3 +11,6 @@ gaia-socket-shared = { path = "../gaia-socket-shared" } # { git = "https://githu
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar" }
 crossbeam-channel = { version = "0.3" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+webrtc-client-dep = { path = "../webrtc-client-dep" }
