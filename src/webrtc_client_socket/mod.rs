@@ -1,8 +1,8 @@
 
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 
-extern crate webrtc_client_dep;
-
+mod webrtcstuff;
+use webrtcstuff::setup_webrtc_stuff;
 use crate::{ClientSocket};
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
@@ -17,7 +17,7 @@ impl ClientSocket for WebrtcClientSocket {
     fn bind(address: &str) -> WebrtcClientSocket {
         info!("Hello WebrtcClientSocket!");
 
-        webrtc_client_dep::setup_webrtc_stuff();
+        webrtcstuff::setup_webrtc_stuff();
 
         WebrtcClientSocket {
             //address: address.parse().unwrap()
