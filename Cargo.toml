@@ -5,18 +5,8 @@ authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
 
 [features]
-UdpClient = [ "gaia-socket/UdpClient" ]
-WebrtcClient = [ "gaia-socket/WebrtcClient" ]
-UdpServer = [ "gaia-socket/UdpServer" ]
-WebrtcServer = [ "gaia-socket/WebrtcServer" ]
-Logging = [ "simple_logger", "web_logger" ]
+use-udp = [ "gaia-server-socket/use-udp" ]
+use-webrtc = [ "gaia-server-socket/use-webrtc" ]
 
 [dependencies]
-gaia-socket = { path = "../gaia-socket" } # { git = "https://github.com/connorcarpenter/gaia-socket" } #
-log = "0.4"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-simple_logger = { version = "1.4", optional = true }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-web_logger = { version = "0.2", optional = true }
+gaia-server-socket = { path = "../gaia-server-socket" } # { git = "https://github.com/connorcarpenter/gaia-server-socket" } #
