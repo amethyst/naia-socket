@@ -1,10 +1,8 @@
 
 use std::net::SocketAddr;
 
-mod socket_event;
-pub use socket_event::SocketEvent;
-mod message_sender;
-pub use message_sender::MessageSender;
+use super::socket_event::SocketEvent;
+use super::message_sender::MessageSender;
 
 pub trait ClientSocket {
     fn bind(address: &str) -> Self;
@@ -17,21 +15,15 @@ pub trait ClientSocket {
 }
 
 /// UDP Client ///
-#[cfg(feature = "UdpClient")]
-mod udp_client_socket;
+#[cfg(not(target_arch = "wasm32"))]
+pub use crate::udp_client_socket::UdpClientSocket;
 
-#[cfg(feature = "UdpClient")]
-pub use self::udp_client_socket::UdpClientSocket;
-
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 pub type ClientSocketImpl = UdpClientSocket;
 
 /// WebRTC Client ///
-#[cfg(feature = "WebrtcClient")]
-mod webrtc_client_socket;
+#[cfg(target_arch = "wasm32")]
+pub use crate::webrtc_client_socket::WebrtcClientSocket;
 
-#[cfg(feature = "WebrtcClient")]
-pub use self::webrtc_client_socket::WebrtcClientSocket;
-
-#[cfg(feature = "WebrtcClient")]
+#[cfg(target_arch = "wasm32")]
 pub type ClientSocketImpl = WebrtcClientSocket;

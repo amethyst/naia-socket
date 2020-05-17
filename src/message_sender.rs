@@ -1,22 +1,22 @@
 
 use std::error::Error;
 
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 use std::net::SocketAddr;
 
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 use crossbeam_channel;
 
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 use laminar::Packet as LaminarPacket;
 
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 pub struct MessageSender {
     internal: crossbeam_channel::Sender<LaminarPacket>,
     address: SocketAddr
 }
 
-#[cfg(feature = "UdpClient")]
+#[cfg(not(target_arch = "wasm32"))]
 impl MessageSender {
 
     pub fn new(address: SocketAddr, sender: crossbeam_channel::Sender<LaminarPacket>) -> MessageSender {
@@ -34,11 +34,11 @@ impl MessageSender {
     }
 }
 
-#[cfg(feature = "WebrtcClient")]
+#[cfg(target_arch = "wasm32")]
 pub struct MessageSender {
 }
 
-#[cfg(feature = "WebrtcClient")]
+#[cfg(target_arch = "wasm32")]
 impl MessageSender {
 
     pub fn new() -> MessageSender {
@@ -50,6 +50,3 @@ impl MessageSender {
         Ok(())
     }
 }
-
-//#[cfg(feature = "UdpClient")]
-//#[cfg(feature = "WebrtcClient")]

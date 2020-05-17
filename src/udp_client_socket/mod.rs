@@ -9,11 +9,10 @@ use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig };
 use log::error;
 
-use crate::client::{ClientSocket};
+use crate::{ClientSocket};
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use crate::internal_shared::{CLIENT_HANDSHAKE_MESSAGE, SERVER_HANDSHAKE_MESSAGE};
-use crate::shared::{find_my_ip_address, find_available_port};
+use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
 
 #[derive(Debug)]
 pub struct StringError {

@@ -2,18 +2,15 @@
 #[macro_use]
 extern crate log;
 
-mod internal_shared;
+#[cfg(not(target_arch = "wasm32"))]
+mod udp_client_socket;
+#[cfg(target_arch = "wasm32")]
+mod webrtc_client_socket;
 
-pub mod shared;
+mod socket_event;//error
+mod message_sender;
+mod client_socket;
 
-#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-pub mod client;
-//
-//#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-//pub use client::{ClientSocket, ClientSocketImpl, SocketEvent};
-
-#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-pub mod server;
-//
-//#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-//pub use server::{ServerSocket, ServerSocketImpl, SocketEvent};
+pub use client_socket::{ClientSocket, ClientSocketImpl};
+pub use socket_event::{SocketEvent};
+pub use message_sender::{MessageSender};
