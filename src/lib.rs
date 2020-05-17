@@ -2,18 +2,8 @@
 #[macro_use]
 extern crate log;
 
-mod internal_shared;
+pub mod find_available_port;
+pub mod find_my_ip_address;
 
-pub mod shared;
-
-#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-pub mod client;
-//
-//#[cfg(any(feature = "WebrtcClient", feature = "UdpClient"))]
-//pub use client::{ClientSocket, ClientSocketImpl, SocketEvent};
-
-#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-pub mod server;
-//
-//#[cfg(any(feature = "WebrtcServer", feature = "UdpServer"))]
-//pub use server::{ServerSocket, ServerSocketImpl, SocketEvent};
+mod constants;
+pub use constants::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
