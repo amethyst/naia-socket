@@ -11,6 +11,9 @@ pub struct Client {
     sender: MessageSender,
 }
 
+#[cfg(target_arch = "wasm32")]
+const SERVER_IP_ADDRESS: &str = "192.168.1.6";
+
 const SERVER_PORT: &str = "3179";
 const PING_MSG: &str = "ping";
 const PONG_MSG: &str = "pong";
@@ -22,16 +25,13 @@ pub fn main_common() {
 
     info!("Client Example Started");
 
-    #[cfg(not(target_arch = "wasm32"))]
-    let current_socket_string = find_my_ip_address::get() + ":" + SERVER_PORT;
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let current_socket_address = current_socket_string.as_str();
-
     #[cfg(target_arch = "wasm32")]
-    let current_socket_address = "192.168.1.5/3179";
+    let server_socket_address = SERVER_IP_ADDRESS.to_owned() + ":" + SERVER_PORT;
 
-    let mut client_socket = ClientSocketImpl::bind(current_socket_address);
+    #[cfg(not(target_arch = "wasm32"))]
+    let server_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
+
+    let mut client_socket = ClientSocketImpl::bind(&server_socket_address);
 
     #[cfg(not(target_arch = "wasm32"))]
     let mut message_sender = client_socket.get_sender();
