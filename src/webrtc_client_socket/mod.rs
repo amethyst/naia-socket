@@ -1,5 +1,6 @@
 
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
+use std::rc::{Rc};
 
 use crate::{ClientSocket};
 use super::socket_event::SocketEvent;
@@ -74,8 +75,9 @@ pub struct IceServerConfig {
 
 pub fn setup_webrtc_stuff() {
 
-    const SERVER_SOCKET_ADDRESS: &str = "192.168.1.5:3179";
-    let SERVER_URL: String = "http://".to_string() + SERVER_SOCKET_ADDRESS + "/new_rtc_session";
+    const SERVER_SOCKET_ADDRESS: &str = "192.168.1.6:3179";
+    let server_url_str: String = "http://".to_string() + SERVER_SOCKET_ADDRESS + "/new_rtc_session";
+    let server_url_msg = Rc::new(server_url_str);
     const PING_MSG: &str = "ping";
     const PONG_MSG: &str = "pong";
 
@@ -148,12 +150,13 @@ pub fn setup_webrtc_stuff() {
 
         let session_description = e.dyn_into::<RtcSessionDescription>().unwrap();
         let peer_clone_2 = peer_clone.clone();
+        let server_url_msg_clone = server_url_msg.clone();
         let peer_desc_callback = Closure::wrap(Box::new(move |e: JsValue| {
 
             let request = XmlHttpRequest::new()
                 .expect("can't create new XmlHttpRequest");
 
-            request.open("POST", "http://192.168.1.5:3179/new_rtc_session");
+            request.open("POST", &server_url_msg_clone);
 
             let request_2 = request.clone();
             let peer_clone_3 = peer_clone_2.clone();
