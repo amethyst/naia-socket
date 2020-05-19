@@ -23,12 +23,12 @@ impl App {
 
     pub fn update(&mut self) {
         match self.client_socket.receive() {
-            SocketEvent::Connection() => {
+            SocketEvent::Connection => {
                 info!("Client connected to: {}", self.client_socket.server_address());
                 self.message_sender.as_mut().unwrap().send(PING_MSG.to_string())
                     .expect("send error");
             }
-            SocketEvent::Disconnection() => {
+            SocketEvent::Disconnection => {
                 info!("Client disconnected from: {}", self.client_socket.server_address());
             }
             SocketEvent::Message(message) => {
