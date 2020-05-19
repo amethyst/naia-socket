@@ -6,6 +6,9 @@ extern crate log;
 mod main_common;
 
 #[cfg(not(target_arch = "wasm32"))]
+mod app;
+
+#[cfg(not(target_arch = "wasm32"))]
 mod app_native;
 
 #[cfg(not(target_arch = "wasm32"))]

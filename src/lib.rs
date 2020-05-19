@@ -9,6 +9,9 @@ use wasm_bindgen::prelude::*;
 pub mod main_common;
 
 #[cfg(target_arch = "wasm32")]
+mod app;
+
+#[cfg(target_arch = "wasm32")]
 mod app_wasm;
 
 #[cfg(target_arch = "wasm32")]
