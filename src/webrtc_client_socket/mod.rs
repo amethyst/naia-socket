@@ -8,7 +8,8 @@ use super::message_sender::MessageSender;
 //use crate::internal_shared::{CLIENT_HANDSHAKE_MESSAGE, SERVER_HANDSHAKE_MESSAGE};
 
 pub struct WebrtcClientSocket {
-    //address: SocketAddr
+    address: SocketAddr,
+    data_channel: RtcDataChannel,
 }
 
 impl ClientSocket for WebrtcClientSocket {
@@ -16,10 +17,11 @@ impl ClientSocket for WebrtcClientSocket {
     fn bind(address: &str) -> WebrtcClientSocket {
         info!("Hello WebrtcClientSocket!");
 
-        setup_webrtc_stuff();
+        let data_channel = setup_webrtc_stuff(address);
 
         WebrtcClientSocket {
-            //address: address.parse().unwrap()
+            address: address.parse().unwrap(),
+            data_channel
         }
     }
 
@@ -28,12 +30,11 @@ impl ClientSocket for WebrtcClientSocket {
     }
 
     fn get_sender(&mut self) -> MessageSender {
-        return MessageSender::new();
+        return MessageSender::new(self.data_channel.clone());
     }
 
     fn server_address(&self) -> SocketAddr {
-        //return self.address;
-        return SocketAddr::new(IpAddr::V4(Ipv4Addr::new(192,168,1,5)), 0);
+        return self.address;
     }
 }
 
@@ -73,10 +74,12 @@ pub struct IceServerConfig {
     pub urls: [String; 1],
 }
 
-pub fn setup_webrtc_stuff() {
+pub fn setup_webrtc_stuff(address: &str) -> RtcDataChannel {
 
-    const SERVER_SOCKET_ADDRESS: &str = "192.168.1.6:3179";
-    let server_url_str: String = "http://".to_string() + SERVER_SOCKET_ADDRESS + "/new_rtc_session";
+    let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
+
+    info!("Server URL: {}", server_url_str);
+
     let server_url_msg = Rc::new(server_url_str);
     const PING_MSG: &str = "ping";
     const PONG_MSG: &str = "pong";
@@ -231,4 +234,6 @@ pub fn setup_webrtc_stuff() {
 
     peer_offer_callback.forget();
     peer_error_callback.forget();
+
+    return channel;
 }

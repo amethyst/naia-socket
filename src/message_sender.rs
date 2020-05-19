@@ -35,18 +35,26 @@ impl MessageSender {
 }
 
 #[cfg(target_arch = "wasm32")]
+use web_sys::{ RtcDataChannel };
+
+#[cfg(target_arch = "wasm32")]
 pub struct MessageSender {
+    data_channel: RtcDataChannel,
 }
 
 #[cfg(target_arch = "wasm32")]
 impl MessageSender {
 
-    pub fn new() -> MessageSender {
+    pub fn new(data_channel: RtcDataChannel) -> MessageSender {
         MessageSender {
+            data_channel
         }
     }
 
     pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
+
+        self.data_channel.send_with_str(&message);
+
         Ok(())
     }
 }
