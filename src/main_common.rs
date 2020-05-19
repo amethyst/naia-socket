@@ -1,8 +1,6 @@
 
 extern crate log;
 
-use gaia_client_socket::{ClientSocket, ClientSocketImpl, SocketEvent, MessageSender};
-
 #[cfg(not(target_arch = "wasm32"))]
 use gaia_socket_shared::{find_my_ip_address};
 

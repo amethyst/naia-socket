@@ -5,13 +5,11 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use gaia_client_socket::{ClientSocket, ClientSocketImpl, SocketEvent, MessageSender};
-
 pub use crate::app::App;
 
 impl App {
     pub fn start_loop(self) {
-        fn request_animation_frame(f: &Closure<FnMut()>) {
+        fn request_animation_frame(f: &Closure<dyn FnMut()>) {
             web_sys::window().unwrap()
                 .request_animation_frame(f.as_ref().unchecked_ref())
                 .expect("should register `requestAnimationFrame` OK");
@@ -30,7 +28,7 @@ impl App {
             request_animation_frame(f.borrow().as_ref().unwrap());
         };
 
-        *g.borrow_mut() = Some(Closure::wrap(Box::new(c) as Box<FnMut()>));
+        *g.borrow_mut() = Some(Closure::wrap(Box::new(c) as Box<dyn FnMut()>));
 
         request_animation_frame(g.borrow().as_ref().unwrap());
     }
