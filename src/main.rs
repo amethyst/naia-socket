@@ -9,11 +9,10 @@ use gaia_socket_shared::{find_my_ip_address};
 #[cfg(not(target_arch = "wasm32"))]
 mod app;
 
-#[cfg(not(target_arch = "wasm32"))]
-mod app_native;
+pub use crate::app::App;
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::app_native::App;
+mod loop_native;
 
 const SERVER_PORT: &str = "3179";
 
@@ -28,5 +27,5 @@ fn main() {
 
     let mut app = App::new(&server_socket_address);
 
-    app.start_loop();
+    loop_native::start_loop(&mut app);
 }

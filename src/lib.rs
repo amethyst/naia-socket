@@ -10,10 +10,13 @@ use wasm_bindgen::prelude::*;
 mod app;
 
 #[cfg(target_arch = "wasm32")]
-mod app_wasm;
+mod loop_wasm;
 
 #[cfg(target_arch = "wasm32")]
-use crate::app_wasm::App;
+use crate::loop_wasm::start_loop;
+
+#[cfg(target_arch = "wasm32")]
+pub use crate::app::App;
 
 const SERVER_IP_ADDRESS: &str = "192.168.1.6";
 const SERVER_PORT: &str = "3179";
@@ -30,5 +33,5 @@ pub fn main_js() {
 
     let mut app = App::new(&server_socket_address);
 
-    app.start_loop();
+    start_loop(app);
 }
