@@ -1,6 +1,8 @@
 
-use std::net::{SocketAddr, Ipv4Addr, IpAddr};
+use std::net::{SocketAddr};
+use std::cell::RefCell;
 use std::rc::{Rc};
+use std::collections::VecDeque;
 
 use crate::{ClientSocket};
 use super::socket_event::SocketEvent;
@@ -10,6 +12,7 @@ use super::message_sender::MessageSender;
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     data_channel: RtcDataChannel,
+    message_queue: Rc<RefCell<VecDeque<String>>>,
 }
 
 impl ClientSocket for WebrtcClientSocket {
@@ -17,16 +20,29 @@ impl ClientSocket for WebrtcClientSocket {
     fn bind(address: &str) -> WebrtcClientSocket {
         info!("Hello WebrtcClientSocket!");
 
-        let data_channel = setup_webrtc_stuff(address);
+        let message_queue = Rc::new(RefCell::new(VecDeque::new()));
+
+        let data_channel = webrtc_initialize(address, message_queue.clone());
 
         WebrtcClientSocket {
             address: address.parse().unwrap(),
-            data_channel
+            data_channel,
+            message_queue
         }
     }
 
     fn receive(&mut self) -> SocketEvent {
-        return SocketEvent::None;
+        if (self.message_queue.borrow().is_empty()) {
+            return SocketEvent::None;
+        }
+
+        info!("message queue has something!");
+
+        let msg = self.message_queue.borrow_mut()
+            //.expect("why can't we borrow? 2")
+            .pop_front()
+            .expect("message queue shouldn't be empty!");
+        return SocketEvent::Message(msg);
     }
 
     fn get_sender(&mut self) -> MessageSender {
@@ -74,13 +90,12 @@ pub struct IceServerConfig {
     pub urls: [String; 1],
 }
 
-pub fn setup_webrtc_stuff(address: &str) -> RtcDataChannel {
+fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) -> RtcDataChannel {
 
     let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
 
     info!("Server URL: {}", server_url_str);
 
-    let server_url_msg = Rc::new(server_url_str);
     const PING_MSG: &str = "ping";
     const PONG_MSG: &str = "pong";
 
@@ -109,6 +124,7 @@ pub fn setup_webrtc_stuff(address: &str) -> RtcDataChannel {
         cloned_channel.send_with_str(PING_MSG);
 
         let cloned_channel_2 = cloned_channel.clone();
+        let msg_queue_clone = msg_queue.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
             if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
                 info!("message event, received arraybuffer: {:?}", abuf);
@@ -116,7 +132,12 @@ pub fn setup_webrtc_stuff(address: &str) -> RtcDataChannel {
                 info!("message event, received blob: {:?}", blob);
             } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
                 info!("message event, received Text: {:?}", txt);
-                cloned_channel_2.send_with_str(PING_MSG);
+                //cloned_channel_2.send_with_str(PING_MSG);
+                let msg = txt.as_string().expect("this should be a string");
+                msg_queue_clone
+                    .borrow_mut()
+                    //.expect("why can't we borrow? 1")
+                    .push_back(msg);
             } else {
                 info!("message event, received Unknown: {:?}", evt.data());
             }
@@ -149,6 +170,7 @@ pub fn setup_webrtc_stuff(address: &str) -> RtcDataChannel {
     onicecandidate_callback.forget();
 
     let peer_clone = peer.clone();
+    let server_url_msg = Rc::new(server_url_str);
     let peer_offer_callback = Closure::wrap(Box::new(move |e: JsValue| {
 
         let session_description = e.dyn_into::<RtcSessionDescription>().unwrap();

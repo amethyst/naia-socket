@@ -1,4 +1,5 @@
 
+#[cfg(target_arch = "wasm32")]
 #[macro_use]
 extern crate log;
 
