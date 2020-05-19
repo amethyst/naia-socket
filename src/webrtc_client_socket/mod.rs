@@ -12,7 +12,7 @@ use super::message_sender::MessageSender;
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     data_channel: RtcDataChannel,
-    message_queue: Rc<RefCell<VecDeque<String>>>,
+    message_queue: Rc<RefCell<VecDeque<SocketEvent>>>,
 }
 
 impl ClientSocket for WebrtcClientSocket {
@@ -32,7 +32,7 @@ impl ClientSocket for WebrtcClientSocket {
     }
 
     fn receive(&mut self) -> SocketEvent {
-        if (self.message_queue.borrow().is_empty()) {
+        if self.message_queue.borrow().is_empty() {
             return SocketEvent::None;
         }
 
@@ -40,7 +40,7 @@ impl ClientSocket for WebrtcClientSocket {
             //.expect("why can't we borrow? 2")
             .pop_front()
             .expect("message queue shouldn't be empty!");
-        return SocketEvent::Message(msg);
+        return msg;
     }
 
     fn get_sender(&mut self) -> MessageSender {
@@ -88,7 +88,7 @@ pub struct IceServerConfig {
     pub urls: [String; 1],
 }
 
-fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) -> RtcDataChannel {
+fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>>) -> RtcDataChannel {
 
     let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
 
@@ -119,9 +119,9 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) ->
     let cloned_channel = channel.clone();
     let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
 
-        /// TODO: Send a connect event here!
-        info!("UNIMPLEMENTED! connect event!");
-        cloned_channel.send_with_str(PING_MSG);
+        msg_queue
+            .borrow_mut()
+            .push_back(SocketEvent::Connection);
 
         let cloned_channel_2 = cloned_channel.clone();
         let msg_queue_clone = msg_queue.clone();
@@ -134,7 +134,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) ->
                 let msg = txt.as_string().expect("this should be a string");
                 msg_queue_clone
                     .borrow_mut()
-                    .push_back(msg);
+                    .push_back(SocketEvent::Message(msg));
             } else {
                 info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
             }

@@ -1,4 +1,6 @@
 
+extern crate log;
+
 use std::thread;
 use std::net::SocketAddr;
 use std::fmt;
@@ -7,7 +9,7 @@ use std::error::Error;
 
 use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig };
-use log::error;
+use log::{error, info, warn};
 
 use crate::{ClientSocket};
 use super::socket_event::SocketEvent;
@@ -81,7 +83,7 @@ impl ClientSocket for UdpClientSocket {
                             let msg = String::from_utf8_lossy(packet.payload());
 
                             if msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                                return SocketEvent::Connection();
+                                return SocketEvent::Connection;
                             }
                             else {
                                 return SocketEvent::Message(msg.to_string());
@@ -93,7 +95,7 @@ impl ClientSocket for UdpClientSocket {
                     }
                     LaminarEvent::Timeout(address) => {
 
-                        return SocketEvent::Disconnection();
+                        return SocketEvent::Disconnection;
                     }
                 }
             }
