@@ -36,8 +36,6 @@ impl ClientSocket for WebrtcClientSocket {
             return SocketEvent::None;
         }
 
-        info!("message queue has something!");
-
         let msg = self.message_queue.borrow_mut()
             //.expect("why can't we borrow? 2")
             .pop_front()
@@ -121,25 +119,24 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) ->
     let cloned_channel = channel.clone();
     let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
 
+        /// TODO: Send a connect event here!
+        info!("UNIMPLEMENTED! connect event!");
         cloned_channel.send_with_str(PING_MSG);
 
         let cloned_channel_2 = cloned_channel.clone();
         let msg_queue_clone = msg_queue.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
             if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
-                info!("message event, received arraybuffer: {:?}", abuf);
+                info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", abuf);
             } else if let Ok(blob) = evt.data().dyn_into::<web_sys::Blob>() {
-                info!("message event, received blob: {:?}", blob);
+                info!("UNIMPLEMENTED! message event, received blob: {:?}", blob);
             } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
-                info!("message event, received Text: {:?}", txt);
-                //cloned_channel_2.send_with_str(PING_MSG);
                 let msg = txt.as_string().expect("this should be a string");
                 msg_queue_clone
                     .borrow_mut()
-                    //.expect("why can't we borrow? 1")
                     .push_back(msg);
             } else {
-                info!("message event, received Unknown: {:?}", evt.data());
+                info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
             }
         }) as Box<dyn FnMut(MessageEvent)>);
 
@@ -149,6 +146,17 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<String>>>) ->
     }) as Box<dyn FnMut(JsValue)>);
     channel.set_onopen(Some(channel_onopen_closure.as_ref().unchecked_ref()));
     channel_onopen_closure.forget();
+
+    ///This does not seem to work when the server shuts down..
+    /// Need to call this on timeout instead
+//    let channel_onclose_closure = Closure::wrap(Box::new(move |_| {
+//
+//        /// TODO: Send a disconnect event here!
+//        info!("UNIMPLEMENTED! disconnect event!");
+//
+//    }) as Box<dyn FnMut(JsValue)>);
+//    channel.set_onclose(Some(channel_onclose_closure.as_ref().unchecked_ref()));
+//    channel_onclose_closure.forget();
 
     let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
         info!("data channel error event: {:?}", e);
