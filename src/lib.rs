@@ -6,13 +6,13 @@ cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
 
         use log::{info};
-        pub mod app;
+        mod app;
         mod loop_wasm;
 
         use wasm_bindgen::prelude::*;
         use crate::app::App;
 
-        const SERVER_IP_ADDRESS: &str = "192.168.1.6";
+        const SERVER_IP_ADDRESS: &str = "192.168.1.6"; // Put your Server's IP Address here!, can't easily find this automatically from the browser
         const SERVER_PORT: &str = "3179";
 
         #[wasm_bindgen(start)]
