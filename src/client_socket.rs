@@ -14,16 +14,15 @@ pub trait ClientSocket {
     fn server_address(&self) -> SocketAddr;
 }
 
-/// UDP Client ///
-#[cfg(not(target_arch = "wasm32"))]
-pub use crate::udp_client_socket::UdpClientSocket;
-
-#[cfg(not(target_arch = "wasm32"))]
-pub type ClientSocketImpl = UdpClientSocket;
-
-/// WebRTC Client ///
-#[cfg(target_arch = "wasm32")]
-pub use crate::webrtc_client_socket::WebrtcClientSocket;
-
-#[cfg(target_arch = "wasm32")]
-pub type ClientSocketImpl = WebrtcClientSocket;
+cfg_if! {
+    if #[cfg(target_arch = "wasm32")] {
+        /// WebRTC Client ///
+        pub use crate::webrtc_client_socket::WebrtcClientSocket;
+        pub type ClientSocketImpl = WebrtcClientSocket;
+    }
+    else {
+        /// UDP Client ///
+        pub use crate::udp_client_socket::UdpClientSocket;
+        pub type ClientSocketImpl = UdpClientSocket;
+    }
+}

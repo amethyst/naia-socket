@@ -1,13 +1,12 @@
 
-use std::net::{SocketAddr};
+use std::net::SocketAddr;
 use std::cell::RefCell;
-use std::rc::{Rc};
+use std::rc::Rc;
 use std::collections::VecDeque;
 
-use crate::{ClientSocket};
+use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-//use crate::internal_shared::{CLIENT_HANDSHAKE_MESSAGE, SERVER_HANDSHAKE_MESSAGE};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
@@ -37,7 +36,6 @@ impl ClientSocket for WebrtcClientSocket {
         }
 
         let msg = self.message_queue.borrow_mut()
-            //.expect("why can't we borrow? 2")
             .pop_front()
             .expect("message queue shouldn't be empty!");
         return msg;
@@ -94,9 +92,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
 
     info!("Server URL: {}", server_url_str);
 
-    const PING_MSG: &str = "ping";
-    const PONG_MSG: &str = "pong";
-
     let mut peer_config: RtcConfiguration = RtcConfiguration::new();
     let ice_server_config = IceServerConfig {
         urls: ["stun:stun.l.google.com:19302".to_string()]
@@ -123,7 +118,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
             .borrow_mut()
             .push_back(SocketEvent::Connection);
 
-        let cloned_channel_2 = cloned_channel.clone();
         let msg_queue_clone = msg_queue.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
             if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
@@ -147,8 +141,8 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     channel.set_onopen(Some(channel_onopen_closure.as_ref().unchecked_ref()));
     channel_onopen_closure.forget();
 
-    ///This does not seem to work when the server shuts down..
-    /// Need to call this on timeout instead
+//    //This does not seem to work when the server shuts down..
+//    //Need to call this on timeout instead?
 //    let channel_onclose_closure = Closure::wrap(Box::new(move |_| {
 //
 //        /// TODO: Send a disconnect event here!
@@ -184,7 +178,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
         let session_description = e.dyn_into::<RtcSessionDescription>().unwrap();
         let peer_clone_2 = peer_clone.clone();
         let server_url_msg_clone = server_url_msg.clone();
-        let peer_desc_callback = Closure::wrap(Box::new(move |e: JsValue| {
+        let peer_desc_callback = Closure::wrap(Box::new(move |_: JsValue| {
 
             let request = XmlHttpRequest::new()
                 .expect("can't create new XmlHttpRequest");
@@ -193,7 +187,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
 
             let request_2 = request.clone();
             let peer_clone_3 = peer_clone_2.clone();
-            let request_callback = Closure::wrap(Box::new(move |e: ProgressEvent| { //instead of ProgressEvent, XmlHttpRequestEventTarget?
+            let request_callback = Closure::wrap(Box::new(move |_: ProgressEvent| {
 
                 if request_2.status().unwrap() == 200 {
                     let response_string = request_2.response_text().unwrap().unwrap();
@@ -209,10 +203,10 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
                         candidate_init_dict.sdp_mid(Some(session_response.candidate.sdpMid.as_str()));
                         let candidate: RtcIceCandidate = RtcIceCandidate::new(&candidate_init_dict).unwrap();
 
-                        let peer_add_success_callback = Closure::wrap(Box::new(move |e: JsValue| {
+                        let peer_add_success_callback = Closure::wrap(Box::new(move |_: JsValue| {
                             info!("Client add ice candidate success");
                         }) as Box<dyn FnMut(JsValue)>);
-                        let peer_add_failure_callback = Closure::wrap(Box::new(move |e: JsValue| {
+                        let peer_add_failure_callback = Closure::wrap(Box::new(move |_: JsValue| {
                             info!("Client error during 'addIceCandidate': {:?}", e);
                         }) as Box<dyn FnMut(JsValue)>);
 
@@ -225,7 +219,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
 
                     }) as Box<dyn FnMut(JsValue)>);
 
-                    let remote_desc_failure_callback = Closure::wrap(Box::new(move |e: JsValue| {
+                    let remote_desc_failure_callback = Closure::wrap(Box::new(move |_: JsValue| {
                         info!("Client error during 'setRemoteDescription': TODO, put value here");
                     }) as Box<dyn FnMut(JsValue)>);
 
@@ -255,7 +249,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
         peer_desc_callback.forget();
     }) as Box<dyn FnMut(JsValue)>);
 
-    let peer_error_callback = Closure::wrap(Box::new(move |e: JsValue| {
+    let peer_error_callback = Closure::wrap(Box::new(move |_: JsValue| {
         info!("Client error during 'createOffer': e value here? TODO");
     }) as Box<dyn FnMut(JsValue)>);
 

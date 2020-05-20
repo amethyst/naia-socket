@@ -4,14 +4,14 @@ extern crate log;
 use std::thread;
 use std::net::SocketAddr;
 use std::fmt;
-use std::{time};
+use std::time;
 use std::error::Error;
 
 use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig };
 use log::{error, info, warn};
 
-use crate::{ClientSocket};
+use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
@@ -73,7 +73,7 @@ impl ClientSocket for UdpClientSocket {
         match self.receiver.recv() {
             Ok(event) => {
                 match event {
-                    LaminarEvent::Connect(address) => {
+                    LaminarEvent::Connect(_) => {
                         // SHOULD NOT EVER GET HERE!, get a SERVER_HANDSHAKE_MESSAGE instead!
                         error!("Client Socket has received a packet from an unknown host!");
                         return SocketEvent::Error(Box::new(StringError { msg: "Client Socket has received a packet from an unknown host!".to_string() }));
@@ -93,7 +93,7 @@ impl ClientSocket for UdpClientSocket {
                             return SocketEvent::Error(Box::new(StringError { msg: "Unknown sender.".to_string() }));
                         }
                     }
-                    LaminarEvent::Timeout(address) => {
+                    LaminarEvent::Timeout(_) => {
 
                         return SocketEvent::Disconnection;
                     }
