@@ -1,4 +1,6 @@
 
+use log::{info};
+
 use gaia_client_socket::{ClientSocket, ClientSocketImpl, SocketEvent, MessageSender};
 
 const PING_MSG: &str = "ping";
