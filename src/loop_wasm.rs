@@ -25,8 +25,6 @@ cfg_if! {
                     .expect("should register `requestAnimationFrame` OK");
             }
 
-            info!("starting loop");
-
             let mut rc = Rc::new(app);
             let f = Rc::new(RefCell::new(None));
             let g = f.clone();
