@@ -1,10 +1,10 @@
 
 extern crate log;
-use log::{info};
 
 mod app;
 mod loop_native;
 
+use log::info;
 use gaia_socket_shared::{find_my_ip_address};
 use app::App;
 
