@@ -72,12 +72,7 @@ impl ServerSocket for WebrtcServerSocket {
                 Ok::<_, HyperError>(service_fn(move |req| {
                     let mut session_endpoint = session_endpoint.clone();
                     async move {
-                        if req.uri().path() == "/"
-                            || req.uri().path() == "/index.html" && req.method() == Method::GET
-                        {
-                            info!("serving example index HTML to {}", remote_addr);
-                            Response::builder().body(Body::from(include_str!("./echo_server.html")))
-                        } else if req.uri().path() == "/new_rtc_session" && req.method() == Method::POST
+                        if req.uri().path() == "/new_rtc_session" && req.method() == Method::POST
                         {
                             info!("WebRTC session request from {}", remote_addr);
                             match session_endpoint.http_session_request(req.into_body()).await {
