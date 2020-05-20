@@ -1,6 +1,9 @@
 
 extern crate log;
 
+#[macro_use]
+extern crate cfg_if;
+
 #[cfg(feature = "use-udp")]
 mod udp_server_socket;
 #[cfg(feature = "use-webrtc")]

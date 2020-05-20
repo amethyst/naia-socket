@@ -13,16 +13,15 @@ pub trait ServerSocket {
     fn get_sender(&mut self) -> MessageSender;
 }
 
-/// Proto Linux Server
-#[cfg(feature = "use-udp")]
-pub use crate::udp_server_socket::UdpServerSocket;
-
-#[cfg(feature = "use-udp")]
-pub type ServerSocketImpl = UdpServerSocket;
-
-/// Final Server ///
-#[cfg(feature = "use-webrtc")]
-pub use crate::webrtc_server_socket::WebrtcServerSocket;
-
-#[cfg(feature = "use-webrtc")]
-pub type ServerSocketImpl = WebrtcServerSocket;
+cfg_if! {
+    if #[cfg(feature = "use-webrtc")] {
+        /// WebRTC Server ///
+        pub use crate::webrtc_server_socket::WebrtcServerSocket;
+        pub type ServerSocketImpl = WebrtcServerSocket;
+    }
+    else if #[cfg(feature = "use-udp")] {
+        /// UDP Server
+        pub use crate::udp_server_socket::UdpServerSocket;
+        pub type ServerSocketImpl = UdpServerSocket;
+    }
+}
