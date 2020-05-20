@@ -42,7 +42,7 @@ async fn main() {
                 }
             }
             SocketEvent::Tick => {
-
+                // This could be used for your non-network logic (game loop?)
             }
             SocketEvent::Error(error) => {
                 info!("Server Error: {}", error);
