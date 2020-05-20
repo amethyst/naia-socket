@@ -2,7 +2,6 @@
 use async_trait::async_trait;
 
 use super::socket_event::SocketEvent;
-use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 
 #[async_trait]

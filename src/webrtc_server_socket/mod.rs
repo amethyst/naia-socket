@@ -5,11 +5,10 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Error as HyperError, Method, Response, Server, StatusCode,
 };
-use log::{info, warn};
+use log::info;
 use std::{
-    error::Error,
     net::{ IpAddr, SocketAddr, TcpListener },
-    time::{ Duration },
+    time::Duration,
 };
 use async_trait::async_trait;
 use webrtc_unreliable::{Server as RtcServer, MessageType, MessageResult, RecvError, ClientEvent as RtcEvent};
@@ -24,7 +23,6 @@ use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
-const EVENT_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct WebrtcServerSocket {
@@ -198,9 +196,6 @@ impl ServerSocket for WebrtcServerSocket {
                 }
                 Next::PeriodicTimer => {
                     return SocketEvent::Tick;
-                }
-                _ => {
-                    warn!("How did we get here?");
                 }
             }
         }

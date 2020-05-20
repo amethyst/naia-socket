@@ -1,5 +1,4 @@
 
-#[macro_use]
 extern crate log;
 
 #[cfg(feature = "use-udp")]
