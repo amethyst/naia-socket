@@ -2,7 +2,6 @@
 #[macro_use]
 extern crate log;
 
-use std::net::{SocketAddr};
 use simple_logger;
 
 use gaia_server_socket::{ServerSocket, ServerSocketImpl, SocketEvent};
