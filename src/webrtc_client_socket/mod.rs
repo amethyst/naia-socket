@@ -56,8 +56,10 @@ use log::{info};
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{ JsCast, JsValue };
-use web_sys::{ RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelType, RtcIceCandidate, RtcIceCandidateInit,
-               RtcPeerConnection, RtcPeerConnectionIceEvent, RtcSdpType, RtcSessionDescription, RtcSessionDescriptionInit,
+use web_sys::{ RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelType,
+               RtcIceCandidate, RtcIceCandidateInit, RtcIceConnectionState,
+               RtcPeerConnection, RtcPeerConnectionIceEvent, RtcSdpType,
+               RtcSessionDescription, RtcSessionDescriptionInit,
                XmlHttpRequest, MessageEvent, ProgressEvent, ErrorEvent };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -112,13 +114,14 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     info!("WebRTC Client initialized");
 
     let cloned_channel = channel.clone();
+    let msg_queue_clone = msg_queue.clone();
     let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
 
-        msg_queue
+        msg_queue_clone
             .borrow_mut()
             .push_back(SocketEvent::Connection);
 
-        let msg_queue_clone = msg_queue.clone();
+        let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
             if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
                 info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", abuf);
@@ -126,7 +129,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
                 info!("UNIMPLEMENTED! message event, received blob: {:?}", blob);
             } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
                 let msg = txt.as_string().expect("this should be a string");
-                msg_queue_clone
+                msg_queue_clone_2
                     .borrow_mut()
                     .push_back(SocketEvent::Message(msg));
             } else {
@@ -140,17 +143,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     }) as Box<dyn FnMut(JsValue)>);
     channel.set_onopen(Some(channel_onopen_closure.as_ref().unchecked_ref()));
     channel_onopen_closure.forget();
-
-//    //This does not seem to work when the server shuts down..
-//    //Need to call this on timeout instead?
-//    let channel_onclose_closure = Closure::wrap(Box::new(move |_| {
-//
-//        /// TODO: Send a disconnect event here!
-//        info!("UNIMPLEMENTED! disconnect event!");
-//
-//    }) as Box<dyn FnMut(JsValue)>);
-//    channel.set_onclose(Some(channel_onclose_closure.as_ref().unchecked_ref()));
-//    channel_onclose_closure.forget();
 
     let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
         info!("data channel error event: {:?}", e);
@@ -252,6 +244,21 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     let peer_error_callback = Closure::wrap(Box::new(move |_: JsValue| {
         info!("Client error during 'createOffer': e value here? TODO");
     }) as Box<dyn FnMut(JsValue)>);
+
+    let msg_queue_clone_3 = msg_queue.clone();
+    let peer_clone_5 = peer.clone();
+    let oniceconnectionstatechange_callback = Closure::wrap(Box::new(move |_| {
+        match peer_clone_5.ice_connection_state() {
+            RtcIceConnectionState::Failed | RtcIceConnectionState::Disconnected | RtcIceConnectionState::Closed => {
+                msg_queue_clone_3
+                    .borrow_mut()
+                    .push_back(SocketEvent::Disconnection);
+            }
+            _ => {}
+        }
+    }) as Box<dyn FnMut(ErrorEvent)>);
+    peer.set_oniceconnectionstatechange(Some(oniceconnectionstatechange_callback.as_ref().unchecked_ref()));
+    oniceconnectionstatechange_callback.forget();
 
     peer.create_offer()
         .then(&peer_offer_callback);

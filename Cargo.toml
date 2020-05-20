@@ -18,8 +18,9 @@ url = "2.1.1"
 wasm-bindgen = { version = "0.2.45", features = [ "serde-serialize" ] }
 js-sys = "0.3"
 web_sys = { version = "0.3.22", package = "web-sys", features = [
-    "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelType", "RtcIceCandidate", "RtcIceCandidateInit",
-    "RtcPeerConnection", "RtcPeerConnectionIceEvent", "RtcSdpType",  "RtcSessionDescription", "RtcSessionDescriptionInit",
+    "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelType",
+    "RtcIceCandidate", "RtcIceCandidateInit", "RtcIceConnectionState", "RtcPeerConnectionIceEvent",
+    "RtcPeerConnection", "RtcSdpType",  "RtcSessionDescription", "RtcSessionDescriptionInit",
     "XmlHttpRequest", "XmlHttpRequestEventTarget", "MessageEvent", "ProgressEvent", "ErrorEvent", "Blob" ] }
 serde = "^1.0.59"
 serde_derive = "^1.0.59"
