@@ -3,31 +3,16 @@ extern crate log;
 
 use std::thread;
 use std::net::SocketAddr;
-use std::fmt;
 use std::time;
-use std::error::Error;
 
 use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig };
-use log::{error, info, warn};
 
 use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
+use crate::error::GaiaClientSocketError;
 use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
-
-#[derive(Debug)]
-pub struct StringError {
-    msg: String,
-}
-
-impl fmt::Display for StringError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.msg)
-    }
-}
-
-impl Error for StringError {}
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -68,38 +53,36 @@ impl ClientSocket for UdpClientSocket {
         }
     }
 
-    fn receive(&mut self) -> SocketEvent {
+    fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
         match self.receiver.recv() {
             Ok(event) => {
                 match event {
                     LaminarEvent::Connect(_) => {
                         // SHOULD NOT EVER GET HERE!, get a SERVER_HANDSHAKE_MESSAGE instead!
-                        error!("Client Socket has received a packet from an unknown host!");
-                        return SocketEvent::Error(Box::new(StringError { msg: "Client Socket has received a packet from an unknown host!".to_string() }));
+                        return Err(GaiaClientSocketError::Message("Client Socket has received a packet from an unknown host!".to_string()));
                     }
                     LaminarEvent::Packet(packet) => {
                         if packet.addr() == self.address {
                             let msg = String::from_utf8_lossy(packet.payload());
 
                             if msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                                return SocketEvent::Connection;
+                                return Ok(SocketEvent::Connection);
                             }
                             else {
-                                return SocketEvent::Message(msg.to_string());
+                                return Ok(SocketEvent::Message(msg.to_string()));
                             }
                         } else {
-                            warn!("Unknown sender.");
-                            return SocketEvent::Error(Box::new(StringError { msg: "Unknown sender.".to_string() }));
+                            return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
                         }
                     }
                     LaminarEvent::Timeout(_) => {
 
-                        return SocketEvent::Disconnection;
+                        return Ok(SocketEvent::Disconnection);
                     }
                 }
             }
             Err(error) => {
-                return SocketEvent::Error(Box::new(error));
+                return Err(GaiaClientSocketError::Wrapped(Box::new(error)));
             }
         }
     }
