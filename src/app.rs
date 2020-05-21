@@ -25,29 +25,33 @@ impl App {
 
     pub fn update(&mut self) {
         match self.client_socket.receive() {
-            SocketEvent::Connection => {
-                info!("Client connected to: {}", self.client_socket.server_address());
-                self.message_sender.as_mut().unwrap().send(PING_MSG.to_string())
-                    .expect("send error");
-            }
-            SocketEvent::Disconnection => {
-                info!("Client disconnected from: {}", self.client_socket.server_address());
-            }
-            SocketEvent::Message(message) => {
-                info!("Client recv: {}", message);
+            Ok(event) => {
+                match event {
+                    SocketEvent::Connection => {
+                        info!("Client connected to: {}", self.client_socket.server_address());
+                        self.message_sender.as_mut().unwrap().send(PING_MSG.to_string())
+                            .expect("send error");
+                    }
+                    SocketEvent::Disconnection => {
+                        info!("Client disconnected from: {}", self.client_socket.server_address());
+                    }
+                    SocketEvent::Message(message) => {
+                        info!("Client recv: {}", message);
 
-                if message.eq(&PONG_MSG.to_string()) {
-                    let to_server_message: String = PING_MSG.to_string();
-                    info!("Client send: {}", to_server_message);
-                    self.message_sender.as_mut().unwrap().send(to_server_message)
-                        .expect("send error");
+                        if message.eq(&PONG_MSG.to_string()) {
+                            let to_server_message: String = PING_MSG.to_string();
+                            info!("Client send: {}", to_server_message);
+                            self.message_sender.as_mut().unwrap().send(to_server_message)
+                                .expect("send error");
+                        }
+                    }
+                    SocketEvent::None => {
+                        //info!("Client non-event");
+                    }
                 }
             }
-            SocketEvent::Error(error) => {
-                info!("Client error: {}", error);
-            }
-            SocketEvent::None => {
-                //info!("Client non-event");
+            Err(err) => {
+                info!("Client Error: {}", err);
             }
         }
     }

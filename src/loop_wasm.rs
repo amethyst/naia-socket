@@ -11,8 +11,6 @@ cfg_if! {
         use std::cell::RefCell;
         use std::rc::Rc;
 
-        use log::{info};
-
         use wasm_bindgen::prelude::*;
         use wasm_bindgen::JsCast;
 
