@@ -44,7 +44,6 @@ impl ClientSocket for UdpClientSocket {
         let client_ip_address = find_my_ip_address::get();
         let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
         let client_socket_address = client_ip_address + ":" + free_socket.to_string().as_str();
-        info!("UDP Client bound to: {}", client_socket_address);
 
         let mut client_socket = LaminarSocket::bind_with_config(client_socket_address, config).unwrap();
 

@@ -17,8 +17,6 @@ pub struct WebrtcClientSocket {
 impl ClientSocket for WebrtcClientSocket {
 
     fn bind(address: &str) -> WebrtcClientSocket {
-        info!("Hello WebrtcClientSocket!");
-
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
 
         let data_channel = webrtc_initialize(address, message_queue.clone());
@@ -92,8 +90,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
 
     let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
 
-    info!("Server URL: {}", server_url_str);
-
     let mut peer_config: RtcConfiguration = RtcConfiguration::new();
     let ice_server_config = IceServerConfig {
         urls: ["stun:stun.l.google.com:19302".to_string()]
@@ -111,8 +107,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     let channel: RtcDataChannel = peer.create_data_channel_with_data_channel_dict("webudp", &data_channel_config);
     channel.set_binary_type(RtcDataChannelType::Arraybuffer);
 
-    info!("WebRTC Client initialized");
-
     let cloned_channel = channel.clone();
     let msg_queue_clone = msg_queue.clone();
     let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
@@ -124,16 +118,16 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
         let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
             if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
-                info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", abuf);
+                //info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", abuf);
             } else if let Ok(blob) = evt.data().dyn_into::<web_sys::Blob>() {
-                info!("UNIMPLEMENTED! message event, received blob: {:?}", blob);
+                //info!("UNIMPLEMENTED! message event, received blob: {:?}", blob);
             } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
                 let msg = txt.as_string().expect("this should be a string");
                 msg_queue_clone_2
                     .borrow_mut()
                     .push_back(SocketEvent::Message(msg));
             } else {
-                info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
+                //info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
             }
         }) as Box<dyn FnMut(MessageEvent)>);
 
@@ -153,10 +147,10 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     let onicecandidate_callback = Closure::wrap(Box::new(move |e: RtcPeerConnectionIceEvent| {
         match e.candidate() {
             Some(ice_candidate) => {
-                info!("Client received ice candidate: {:?}", ice_candidate.candidate());
+                //info!("Client received ice candidate: {:?}", ice_candidate.candidate());
             }
             None => {
-                info!("Client received all local candidates");
+                //Client received all local candidates
             }
         }
     }) as Box<dyn FnMut(RtcPeerConnectionIceEvent)>);
@@ -196,7 +190,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
                         let candidate: RtcIceCandidate = RtcIceCandidate::new(&candidate_init_dict).unwrap();
 
                         let peer_add_success_callback = Closure::wrap(Box::new(move |_: JsValue| {
-                            info!("Client add ice candidate success");
+                            //Client add ice candidate success
                         }) as Box<dyn FnMut(JsValue)>);
                         let peer_add_failure_callback = Closure::wrap(Box::new(move |_: JsValue| {
                             info!("Client error during 'addIceCandidate': {:?}", e);
