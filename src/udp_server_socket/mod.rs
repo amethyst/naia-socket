@@ -1,6 +1,7 @@
 
 use std::thread;
 use std::time;
+use log::info;
 
 use async_trait::async_trait;
 use laminar::{Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig};
@@ -10,7 +11,7 @@ use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
-use log::info;
+use crate::error::GaiaServerSocketError;
 
 /////
 
@@ -37,8 +38,8 @@ impl ServerSocket for UdpServerSocket {
         }
     }
 
-    async fn receive(&mut self) -> SocketEvent {
-        let mut output: Option<SocketEvent> = None;
+    async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
+        let mut output: Option<Result<SocketEvent, GaiaServerSocketError>> = None;
         while output.is_none() {
             match self.receiver.recv() {
                 Ok(event) => {
@@ -47,23 +48,22 @@ impl ServerSocket for UdpServerSocket {
                             self.sender.send(LaminarPacket::reliable_unordered(packet_addr, SERVER_HANDSHAKE_MESSAGE.to_string().into_bytes()))
                                 .expect("send error");
 
-                            output = Some(SocketEvent::Connection(packet_addr));
+                            output = Some(Ok(SocketEvent::Connection(packet_addr)));
                         }
                         LaminarEvent::Packet(packet) => {
                             let msg = String::from_utf8_lossy(packet.payload());
 
                             if !msg.eq(CLIENT_HANDSHAKE_MESSAGE) {
-                                output = Some(SocketEvent::Message(packet.addr(), msg.to_string()));
+                                output = Some(Ok(SocketEvent::Message(packet.addr(), msg.to_string())));
                             }
                         }
                         LaminarEvent::Timeout(address) => {
-                            output = Some(SocketEvent::Disconnection(address));
+                            output = Some(Ok(SocketEvent::Disconnection(address)));
                         }
                     }
                 }
                 Err(err) => {
-                    // ?
-                    output = Some(SocketEvent::Error(Box::new(err)));
+                    output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(err))));
                 }
             }
         }
