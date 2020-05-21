@@ -144,19 +144,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
     channel.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
     onerror_callback.forget();
 
-    let onicecandidate_callback = Closure::wrap(Box::new(move |e: RtcPeerConnectionIceEvent| {
-        match e.candidate() {
-            Some(ice_candidate) => {
-                //info!("Client received ice candidate: {:?}", ice_candidate.candidate());
-            }
-            None => {
-                //Client received all local candidates
-            }
-        }
-    }) as Box<dyn FnMut(RtcPeerConnectionIceEvent)>);
-    peer.set_onicecandidate(Some(onicecandidate_callback.as_ref().unchecked_ref()));
-    onicecandidate_callback.forget();
-
     let peer_clone = peer.clone();
     let server_url_msg = Rc::new(server_url_str);
     let peer_offer_callback = Closure::wrap(Box::new(move |e: JsValue| {
