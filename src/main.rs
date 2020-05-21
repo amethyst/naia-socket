@@ -24,26 +24,30 @@ async fn main() {
 
     loop {
         match server_socket.receive().await {
-            SocketEvent::Connection(address) => {
-                info!("Server connected to: {}", address);
-            }
-            SocketEvent::Disconnection(address) => {
-                info!("Server disconnected from: {:?}", address);
-            }
-            SocketEvent::Message(address, message) => {
-                info!("Server recv <- {}: {}", address, message);
+            Ok(event) => {
+                match event {
+                    SocketEvent::Connection(address) => {
+                        info!("Server connected to: {}", address);
+                    }
+                    SocketEvent::Disconnection(address) => {
+                        info!("Server disconnected from: {:?}", address);
+                    }
+                    SocketEvent::Message(address, message) => {
+                        info!("Server recv <- {}: {}", address, message);
 
-                if message.eq(PING_MSG) {
-                    let to_client_message: String = PONG_MSG.to_string();
-                    info!("Server send -> {}: {}", address, to_client_message);
-                    sender.send((address, to_client_message))
-                        .await.expect("send error");
+                        if message.eq(PING_MSG) {
+                            let to_client_message: String = PONG_MSG.to_string();
+                            info!("Server send -> {}: {}", address, to_client_message);
+                            sender.send((address, to_client_message))
+                                .await.expect("send error");
+                        }
+                    }
+                    SocketEvent::Tick => {
+                        // This could be used for your non-network logic (game loop?)
+                    }
                 }
             }
-            SocketEvent::Tick => {
-                // This could be used for your non-network logic (game loop?)
-            }
-            SocketEvent::Error(error) => {
+            Err(error) => {
                 info!("Server Error: {}", error);
             }
         }
