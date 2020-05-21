@@ -1,6 +1,7 @@
 
 use async_trait::async_trait;
 
+use super::error::GaiaServerSocketError;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 
@@ -8,7 +9,7 @@ use super::message_sender::MessageSender;
 pub trait ServerSocket {
     async fn bind(address: &str) -> Self;
 
-    async fn receive(&mut self) -> SocketEvent;
+    async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError>;
 
     fn get_sender(&mut self) -> MessageSender;
 }

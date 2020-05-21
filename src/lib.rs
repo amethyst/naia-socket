@@ -9,6 +9,7 @@ mod udp_server_socket;
 #[cfg(feature = "use-webrtc")]
 mod webrtc_server_socket;
 
+mod error;
 mod socket_event;
 mod client_message;
 mod message_sender;

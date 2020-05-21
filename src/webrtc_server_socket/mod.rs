@@ -21,6 +21,7 @@ use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
+use crate::error::GaiaServerSocketError;
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
@@ -107,7 +108,7 @@ impl ServerSocket for WebrtcServerSocket {
         socket
     }
 
-    async fn receive(&mut self) -> SocketEvent {
+    async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
 
         enum Next {
             ToClientEvent(RtcEvent),
@@ -157,10 +158,10 @@ impl ServerSocket for WebrtcServerSocket {
                 Next::ToClientEvent(to_client_event) => {
                     match to_client_event {
                         RtcEvent::Connection(address) => {
-                            return SocketEvent::Connection(address);
+                            return Ok(SocketEvent::Connection(address));
                         }
                         RtcEvent::Disconnection(address) => {
-                            return SocketEvent::Disconnection(address);
+                            return Ok(SocketEvent::Disconnection(address));
                         }
                     }
                 }
@@ -173,24 +174,24 @@ impl ServerSocket for WebrtcServerSocket {
 
                             let message = String::from_utf8_lossy(packet_payload);
 
-                            return SocketEvent::Message(address, message.to_string());
+                            return Ok(SocketEvent::Message(address, message.to_string()));
                         }
                         Err(err) => {
-                            return SocketEvent::Error(Box::new(err));
+                            return Err(GaiaServerSocketError::Wrapped(Box::new(err)));
                         }
                     }
                 }
                 Next::ToServerMessage((address, message)) => {
-                    if let Err(err) = self.rtc_server.send(
+                    if let Err(error) = self.rtc_server.send(
                         message.into_bytes().as_slice(),
                         MessageType::Text,
-                        &address
-                    ).await {
-                        return SocketEvent::Error(Box::new(err));
+                        &address)
+                        .await {
+                        return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
                     }
                 }
                 Next::PeriodicTimer => {
-                    return SocketEvent::Tick;
+                    return Ok(SocketEvent::Tick);
                 }
             }
         }
