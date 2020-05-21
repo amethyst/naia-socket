@@ -7,11 +7,12 @@ use std::collections::VecDeque;
 use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
+use crate::error::GaiaClientSocketError;
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     data_channel: RtcDataChannel,
-    message_queue: Rc<RefCell<VecDeque<SocketEvent>>>,
+    message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
 }
 
 impl ClientSocket for WebrtcClientSocket {
@@ -28,9 +29,9 @@ impl ClientSocket for WebrtcClientSocket {
         }
     }
 
-    fn receive(&mut self) -> SocketEvent {
+    fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
         if self.message_queue.borrow().is_empty() {
-            return SocketEvent::None;
+            return Ok(SocketEvent::None);
         }
 
         let msg = self.message_queue.borrow_mut()
@@ -50,13 +51,13 @@ impl ClientSocket for WebrtcClientSocket {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use log::{info};
+use log::info;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{ JsCast, JsValue };
 use web_sys::{ RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelType,
                RtcIceCandidate, RtcIceCandidateInit, RtcIceConnectionState,
-               RtcPeerConnection, RtcPeerConnectionIceEvent, RtcSdpType,
+               RtcPeerConnection, RtcSdpType,
                RtcSessionDescription, RtcSessionDescriptionInit,
                XmlHttpRequest, MessageEvent, ProgressEvent, ErrorEvent };
 
@@ -86,7 +87,7 @@ pub struct IceServerConfig {
     pub urls: [String; 1],
 }
 
-fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>>) -> RtcDataChannel {
+fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>) -> RtcDataChannel {
 
     let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
 
@@ -113,19 +114,19 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
 
         msg_queue_clone
             .borrow_mut()
-            .push_back(SocketEvent::Connection);
+            .push_back(Ok(SocketEvent::Connection));
 
         let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
-            if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
-                //info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", abuf);
-            } else if let Ok(blob) = evt.data().dyn_into::<web_sys::Blob>() {
-                //info!("UNIMPLEMENTED! message event, received blob: {:?}", blob);
+            if let Ok(_) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
+                //info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", _);
+            } else if let Ok(_) = evt.data().dyn_into::<web_sys::Blob>() {
+                //info!("UNIMPLEMENTED! message event, received blob: {:?}", _);
             } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
                 let msg = txt.as_string().expect("this should be a string");
                 msg_queue_clone_2
                     .borrow_mut()
-                    .push_back(SocketEvent::Message(msg));
+                    .push_back(Ok(SocketEvent::Message(msg)));
             } else {
                 //info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
             }
@@ -233,7 +234,7 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<SocketEvent>>
             RtcIceConnectionState::Failed | RtcIceConnectionState::Disconnected | RtcIceConnectionState::Closed => {
                 msg_queue_clone_3
                     .borrow_mut()
-                    .push_back(SocketEvent::Disconnection);
+                    .push_back(Ok(SocketEvent::Disconnection));
             }
             _ => {}
         }

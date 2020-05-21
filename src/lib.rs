@@ -14,6 +14,7 @@ cfg_if! {
     }
 }
 
+mod error;
 mod socket_event;
 mod message_sender;
 mod client_socket;
