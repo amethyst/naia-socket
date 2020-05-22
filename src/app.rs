@@ -1,7 +1,7 @@
 
 use log::{info};
 
-use gaia_client_socket::{ClientSocket, SocketEvent, MessageSender};
+use gaia_client_socket::{ClientSocket, SocketEvent, MessageSender, Config};
 
 const PING_MSG: &str = "ping";
 const PONG_MSG: &str = "pong";
@@ -12,9 +12,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(server_socket_address: &str) -> App {
+    pub fn new(server_socket_address: &str, config: Option<Config>) -> App {
         let mut app = App {
-            client_socket: ClientSocket::connect(&server_socket_address),
+            client_socket: ClientSocket::connect(&server_socket_address, config),
             message_sender: None,
         };
 

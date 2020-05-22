@@ -10,6 +10,8 @@ cfg_if! {
         mod loop_wasm;
 
         use wasm_bindgen::prelude::*;
+        use gaia_client_socket::Config;
+
         use crate::app::App;
 
         const SERVER_IP_ADDRESS: &str = "192.168.1.6"; // Put your Server's IP Address here!, can't easily find this automatically from the browser
@@ -22,9 +24,11 @@ cfg_if! {
 
             info!("Client Example Started");
 
+            let config = Config::default();
+
             let server_socket_address = SERVER_IP_ADDRESS.to_owned() + ":" + SERVER_PORT;
 
-            let app = App::new(&server_socket_address);
+            let app = App::new(&server_socket_address, Some(config));
 
             loop_wasm::start_loop(app);
         }

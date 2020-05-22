@@ -5,7 +5,7 @@ mod app;
 mod loop_native;
 
 use log::info;
-use gaia_socket_shared::{find_my_ip_address};
+use gaia_client_socket::{Config, find_my_ip_address};
 use app::App;
 
 const SERVER_PORT: &str = "3179";
@@ -16,9 +16,11 @@ fn main() {
 
     info!("Client Example Started");
 
+    let config = Config::default();
+
     let server_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
-    let mut app = App::new(&server_socket_address);
+    let mut app = App::new(&server_socket_address, Some(config));
 
     loop_native::start_loop(&mut app);
 }

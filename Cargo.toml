@@ -13,7 +13,6 @@ path = "src/main.rs"
 
 [dependencies]
 gaia-client-socket = { path = "../gaia-client-socket" } # { git = "https://github.com/connorcarpenter/gaia-client-socket" } #
-gaia-socket-shared = { path = "../gaia-socket-shared" } # { git = "https://github.com/connorcarpenter/gaia-socket-shared" } #
 log = "0.4"
 cfg-if = "*"
 
