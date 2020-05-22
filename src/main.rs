@@ -4,8 +4,7 @@ extern crate log;
 
 use simple_logger;
 
-use gaia_server_socket::{ServerSocket, SocketEvent};
-use gaia_socket_shared::{find_my_ip_address};
+use gaia_server_socket::{ServerSocket, SocketEvent, Config, find_my_ip_address};
 
 const SERVER_PORT: &str = "3179";
 const PING_MSG: &str = "ping";
@@ -18,7 +17,9 @@ async fn main() {
 
     let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
-    let mut server_socket = ServerSocket::listen(current_socket_address.as_str()).await;
+    let config = Config::default();
+
+    let mut server_socket = ServerSocket::listen(current_socket_address.as_str(), Some(config)).await;
 
     let mut sender = server_socket.get_sender();
 
