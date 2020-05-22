@@ -36,10 +36,10 @@ impl UdpClientSocket {
         let server_socket_address: SocketAddr = server_address.parse().unwrap();
 
         //Send initial server handshake
-        let line: String = CLIENT_HANDSHAKE_MESSAGE.to_string();
+        let handshake_message: String = CLIENT_HANDSHAKE_MESSAGE.to_string();
         sender.send(LaminarPacket::reliable_unordered(
             server_socket_address,
-            line.clone().into_bytes(),
+            handshake_message.clone().into_bytes(),
         ))
             .expect("failure sending client handshake");
 

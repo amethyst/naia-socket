@@ -7,12 +7,14 @@ use std::collections::VecDeque;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::Config;
+use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     data_channel: RtcDataChannel,
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
+    connected: bool,
+    timeout: u16,
 }
 
 impl WebrtcClientSocket {
@@ -25,19 +27,48 @@ impl WebrtcClientSocket {
         WebrtcClientSocket {
             address: server_address.parse().unwrap(),
             data_channel,
-            message_queue
+            message_queue,
+            connected: false,
+            timeout: 0,
         }
     }
 
     pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
-        if self.message_queue.borrow().is_empty() {
-            return Ok(SocketEvent::None);
+
+        if !self.connected {
+            if self.timeout > 0 {
+                self.timeout -= 1;
+            } else {
+                info!("sending handshake");
+                self.data_channel.send_with_str(CLIENT_HANDSHAKE_MESSAGE);
+                self.timeout = 100;
+                return Ok(SocketEvent::None);
+            }
         }
 
-        let msg = self.message_queue.borrow_mut()
-            .pop_front()
-            .expect("message queue shouldn't be empty!");
-        return msg;
+        loop {
+            if self.message_queue.borrow().is_empty() {
+                return Ok(SocketEvent::None);
+            }
+
+            match self.message_queue.borrow_mut()
+                .pop_front()
+                .expect("message queue shouldn't be empty!") {
+                Ok(SocketEvent::Message(inner_msg)) => {
+                    if inner_msg.eq(SERVER_HANDSHAKE_MESSAGE) {
+                        if !self.connected {
+                            info!("got handshake!");
+                            self.connected = true;
+                            return Ok(SocketEvent::Connection);
+                        }
+                    } else {
+                        return Ok(SocketEvent::Message(inner_msg));
+                    }
+                }
+                Ok(inner) => { return Ok(inner); }
+                Err(err) => { return Err(err); }
+            }
+        }
     }
 
     pub fn get_sender(&mut self) -> MessageSender {
@@ -56,7 +87,7 @@ use log::info;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{ JsCast, JsValue };
 use web_sys::{ RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelType,
-               RtcIceCandidate, RtcIceCandidateInit, RtcIceConnectionState,
+               RtcIceCandidate, RtcIceCandidateInit,
                RtcPeerConnection, RtcSdpType,
                RtcSessionDescription, RtcSessionDescriptionInit,
                XmlHttpRequest, MessageEvent, ProgressEvent, ErrorEvent };
@@ -111,10 +142,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
     let cloned_channel = channel.clone();
     let msg_queue_clone = msg_queue.clone();
     let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
-
-        msg_queue_clone
-            .borrow_mut()
-            .push_back(Ok(SocketEvent::Connection));
 
         let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
@@ -226,21 +253,6 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
     let peer_error_callback = Closure::wrap(Box::new(move |_: JsValue| {
         info!("Client error during 'createOffer': e value here? TODO");
     }) as Box<dyn FnMut(JsValue)>);
-
-    let msg_queue_clone_3 = msg_queue.clone();
-    let peer_clone_5 = peer.clone();
-    let oniceconnectionstatechange_callback = Closure::wrap(Box::new(move |_| {
-        match peer_clone_5.ice_connection_state() {
-            RtcIceConnectionState::Failed | RtcIceConnectionState::Disconnected | RtcIceConnectionState::Closed => {
-                msg_queue_clone_3
-                    .borrow_mut()
-                    .push_back(Ok(SocketEvent::Disconnection));
-            }
-            _ => {}
-        }
-    }) as Box<dyn FnMut(ErrorEvent)>);
-    peer.set_oniceconnectionstatechange(Some(oniceconnectionstatechange_callback.as_ref().unchecked_ref()));
-    oniceconnectionstatechange_callback.forget();
 
     peer.create_offer()
         .then(&peer_offer_callback);
