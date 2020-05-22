@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
+use gaia_socket_shared::Config;
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
@@ -16,7 +17,7 @@ pub struct WebrtcClientSocket {
 
 impl WebrtcClientSocket {
 
-    pub fn connect(server_address: &str) -> WebrtcClientSocket {
+    pub fn connect(server_address: &str, config: Option<Config>) -> WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
 
         let data_channel = webrtc_initialize(server_address, message_queue.clone());

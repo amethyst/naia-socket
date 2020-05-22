@@ -22,3 +22,4 @@ mod client_socket;
 pub use client_socket::ClientSocket;
 pub use socket_event::SocketEvent;
 pub use message_sender::MessageSender;
+pub use gaia_socket_shared::{Config, find_my_ip_address};

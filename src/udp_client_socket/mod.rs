@@ -11,7 +11,7 @@ use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
+use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -20,7 +20,7 @@ pub struct UdpClientSocket {
 }
 
 impl UdpClientSocket {
-    pub fn connect(server_address: &str) -> UdpClientSocket {
+    pub fn connect(server_address: &str, config: Option<Config>) -> UdpClientSocket {
 
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
