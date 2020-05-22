@@ -1,10 +1,4 @@
 
-use std::net::SocketAddr;
-
-use super::error::GaiaClientSocketError;
-use super::socket_event::SocketEvent;
-use super::message_sender::MessageSender;
-
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         /// WebRTC Client ///
