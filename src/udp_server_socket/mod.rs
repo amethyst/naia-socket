@@ -24,9 +24,7 @@ impl UdpServerSocket {
     pub async fn listen(address: &str, config: Option<Config>) -> UdpServerSocket {
         info!("UDP Server listening on: {}", address);
 
-        let mut config = LaminarConfig::default();
-        config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
-        let mut socket = LaminarSocket::bind_with_config(address, config).unwrap();
+        let mut socket = LaminarSocket::bind(address).unwrap();
         let (sender, receiver) = (socket.get_packet_sender(), socket.get_event_receiver());
 
         let _thread = thread::spawn(move || socket.start_polling());
