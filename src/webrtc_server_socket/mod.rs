@@ -9,8 +9,9 @@ use log::info;
 use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
     time::Duration,
+    io::{Error as IoError}
 };
-use webrtc_unreliable::{Server as RtcServer, MessageType, MessageResult, RecvError, ClientEvent as RtcEvent};
+use webrtc_unreliable::{Server as RtcServer, MessageType};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
@@ -28,10 +29,8 @@ const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
 pub struct WebrtcServerSocket {
     to_server_sender: mpsc::Sender<ClientMessage>,
     to_server_receiver: mpsc::Receiver<ClientMessage>,
-    to_client_event_receiver: mpsc::Receiver<RtcEvent>,
     periodic_timer: Interval,
     rtc_server: RtcServer,
-    message_buf: Vec<u8>,
 }
 
 impl WebrtcServerSocket {
@@ -48,18 +47,13 @@ impl WebrtcServerSocket {
 
         let (to_server_sender, to_server_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
 
-        let mut rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
+        let rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
-
-        let to_client_event_receiver = rtc_server.get_event_receiver()
-            .expect("could not get new event receiver");
 
         let socket = WebrtcServerSocket {
             to_server_sender,
             to_server_receiver,
             rtc_server,
-            to_client_event_receiver,
-            message_buf: vec![0; 0x10000],
             periodic_timer: time::interval(PERIODIC_TIMER_INTERVAL),
         };
 
@@ -109,8 +103,7 @@ impl WebrtcServerSocket {
     pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
 
         enum Next {
-            ToClientEvent(RtcEvent),
-            ToClientMessage(Result<MessageResult, RecvError>),
+            ToClientMessage(Result<(SocketAddr, String), IoError>),
             ToServerMessage(ClientMessage),
             PeriodicTimer,
         }
@@ -123,27 +116,24 @@ impl WebrtcServerSocket {
                 let to_server_receiver_next = self.to_server_receiver.next().fuse();
                 pin_mut!(to_server_receiver_next);
 
-                let to_client_event_receiver_next = self.to_client_event_receiver.next().fuse();
-                pin_mut!(to_client_event_receiver_next);
-
                 let rtc_server = &mut self.rtc_server;
-                let to_client_message_receiver_next = rtc_server.recv(&mut self.message_buf).fuse();
+                let to_client_message_receiver_next = rtc_server.recv().fuse(); //&mut self.message_buf
                 pin_mut!(to_client_message_receiver_next);
 
                 select! {
-                    to_client_message = to_client_message_receiver_next => {
+                    to_client_result = to_client_message_receiver_next => {
                         Next::ToClientMessage(
-                            to_client_message
+                            match to_client_result {
+                                Ok(msg) => {
+                                    Ok((msg.remote_addr, String::from_utf8_lossy(msg.message.as_ref()).to_string()))
+                                }
+                                Err(err) => { Err(err) }
+                            }
                         )
                     }
                     to_server_message = to_server_receiver_next => {
                         Next::ToServerMessage(
                             to_server_message.expect("to server message receiver closed")
-                        )
-                    }
-                    to_client_event = to_client_event_receiver_next => {
-                        Next::ToClientEvent(
-                            to_client_event.expect("from server event receiver closed")
                         )
                     }
                     _ = timer_next => {
@@ -153,26 +143,10 @@ impl WebrtcServerSocket {
             };
 
             match next {
-                Next::ToClientEvent(to_client_event) => {
-                    match to_client_event {
-                        RtcEvent::Connection(address) => {
-                            return Ok(SocketEvent::Connection(address));
-                        }
-                        RtcEvent::Disconnection(address) => {
-                            return Ok(SocketEvent::Disconnection(address));
-                        }
-                    }
-                }
                 Next::ToClientMessage(to_client_message) => {
                     match to_client_message {
-                        Ok(message_result) => {
-                            let packet_payload = &self.message_buf[0..message_result.message_len];
-
-                            let address = message_result.remote_addr;
-
-                            let message = String::from_utf8_lossy(packet_payload);
-
-                            return Ok(SocketEvent::Message(address, message.to_string()));
+                        Ok((address, message)) => {
+                            return Ok(SocketEvent::Message(address, message));
                         }
                         Err(err) => {
                             return Err(GaiaServerSocketError::Wrapped(Box::new(err)));
