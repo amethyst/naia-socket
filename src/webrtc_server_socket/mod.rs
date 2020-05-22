@@ -34,7 +34,7 @@ pub struct WebrtcServerSocket {
 }
 
 impl WebrtcServerSocket {
-    pub async fn bind(address: &str) -> WebrtcServerSocket {
+    pub async fn listen(address: &str) -> WebrtcServerSocket {
         info!("Hello WebrtcServerSocket!");
 
         let session_listen_addr: SocketAddr = address

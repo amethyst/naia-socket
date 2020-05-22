@@ -11,15 +11,13 @@ use super::message_sender::MessageSender;
 use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
 use crate::error::GaiaServerSocketError;
 
-/////
-
 pub struct UdpServerSocket {
     sender: Sender<LaminarPacket>,
     receiver: Receiver<LaminarEvent>
 }
 
 impl UdpServerSocket {
-    pub async fn bind(address: &str) -> UdpServerSocket {
+    pub async fn listen(address: &str) -> UdpServerSocket {
         info!("UDP Server listening on: {}", address);
 
         let mut config = LaminarConfig::default();
