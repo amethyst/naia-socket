@@ -20,6 +20,7 @@ use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 use crate::error::GaiaServerSocketError;
+use gaia_socket_shared::Config;
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
@@ -34,7 +35,7 @@ pub struct WebrtcServerSocket {
 }
 
 impl WebrtcServerSocket {
-    pub async fn listen(address: &str) -> WebrtcServerSocket {
+    pub async fn listen(address: &str, config: Option<Config>) -> WebrtcServerSocket {
         info!("Hello WebrtcServerSocket!");
 
         let session_listen_addr: SocketAddr = address

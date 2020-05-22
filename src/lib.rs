@@ -17,3 +17,4 @@ mod server_socket;
 
 pub use server_socket::ServerSocket;
 pub use socket_event::SocketEvent;
+pub use gaia_socket_shared::{Config, find_my_ip_address};

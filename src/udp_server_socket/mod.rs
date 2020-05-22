@@ -8,7 +8,7 @@ use crossbeam_channel::{self, Receiver, Sender};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
+use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
 use crate::error::GaiaServerSocketError;
 
 pub struct UdpServerSocket {
@@ -17,7 +17,7 @@ pub struct UdpServerSocket {
 }
 
 impl UdpServerSocket {
-    pub async fn listen(address: &str) -> UdpServerSocket {
+    pub async fn listen(address: &str, config: Option<Config>) -> UdpServerSocket {
         info!("UDP Server listening on: {}", address);
 
         let mut config = LaminarConfig::default();
