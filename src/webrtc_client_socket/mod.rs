@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::VecDeque;
 
-use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
@@ -15,21 +14,21 @@ pub struct WebrtcClientSocket {
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
 }
 
-impl ClientSocket for WebrtcClientSocket {
+impl WebrtcClientSocket {
 
-    fn bind(address: &str) -> WebrtcClientSocket {
+    pub fn connect(server_address: &str) -> WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
 
-        let data_channel = webrtc_initialize(address, message_queue.clone());
+        let data_channel = webrtc_initialize(server_address, message_queue.clone());
 
         WebrtcClientSocket {
-            address: address.parse().unwrap(),
+            address: server_address.parse().unwrap(),
             data_channel,
             message_queue
         }
     }
 
-    fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
+    pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
         if self.message_queue.borrow().is_empty() {
             return Ok(SocketEvent::None);
         }
@@ -40,11 +39,11 @@ impl ClientSocket for WebrtcClientSocket {
         return msg;
     }
 
-    fn get_sender(&mut self) -> MessageSender {
+    pub fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.data_channel.clone());
     }
 
-    fn server_address(&self) -> SocketAddr {
+    pub fn server_address(&self) -> SocketAddr {
         return self.address;
     }
 }

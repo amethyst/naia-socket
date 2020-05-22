@@ -8,7 +8,6 @@ use std::time;
 use crossbeam_channel::{Sender as ChannelSender, Receiver as ChannelReceiver};
 use laminar::{ Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig };
 
-use crate::ClientSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
@@ -20,8 +19,8 @@ pub struct UdpClientSocket {
     receiver: ChannelReceiver<LaminarEvent>
 }
 
-impl ClientSocket for UdpClientSocket {
-    fn bind(address: &str) -> UdpClientSocket {
+impl UdpClientSocket {
+    pub fn connect(server_address: &str) -> UdpClientSocket {
 
         let mut config = LaminarConfig::default();
         config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
@@ -34,12 +33,12 @@ impl ClientSocket for UdpClientSocket {
 
         let (sender, receiver): (ChannelSender<LaminarPacket>, ChannelReceiver<LaminarEvent>) = (client_socket.get_packet_sender(), client_socket.get_event_receiver());
 
-        let server_address: SocketAddr = address.parse().unwrap();
+        let server_socket_address: SocketAddr = server_address.parse().unwrap();
 
         //Send initial server handshake
         let line: String = CLIENT_HANDSHAKE_MESSAGE.to_string();
         sender.send(LaminarPacket::reliable_unordered(
-            server_address,
+            server_socket_address,
             line.clone().into_bytes(),
         ))
             .expect("failure sending client handshake");
@@ -47,13 +46,13 @@ impl ClientSocket for UdpClientSocket {
         let _thread = thread::spawn(move || client_socket.start_polling());
 
         UdpClientSocket {
-            address: server_address,
+            address: server_socket_address,
             sender,
             receiver,
         }
     }
 
-    fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
+    pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
         match self.receiver.recv() {
             Ok(event) => {
                 match event {
@@ -87,11 +86,11 @@ impl ClientSocket for UdpClientSocket {
         }
     }
 
-    fn get_sender(&mut self) -> MessageSender {
+    pub fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.address, self.sender.clone());
     }
 
-    fn server_address(&self) -> SocketAddr {
+    pub fn server_address(&self) -> SocketAddr {
         return self.address;
     }
 }

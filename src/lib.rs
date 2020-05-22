@@ -19,6 +19,6 @@ mod socket_event;
 mod message_sender;
 mod client_socket;
 
-pub use client_socket::{ClientSocket, ClientSocketImpl};
+pub use client_socket::ClientSocket;
 pub use socket_event::SocketEvent;
 pub use message_sender::MessageSender;
