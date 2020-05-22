@@ -68,10 +68,7 @@ impl UdpClientSocket {
         match self.receiver.recv() {
             Ok(event) => {
                 match event {
-                    LaminarEvent::Connect(_) => {
-                        // SHOULD NOT EVER GET HERE!, get a SERVER_HANDSHAKE_MESSAGE instead!
-                        //return Err(GaiaClientSocketError::Message("Client Socket has received a packet from an unknown host!".to_string()));
-                    }
+                    LaminarEvent::Connect(_) => { }
                     LaminarEvent::Packet(packet) => {
                         if packet.addr() == self.address {
                             let msg = String::from_utf8_lossy(packet.payload()).to_string();
@@ -89,9 +86,7 @@ impl UdpClientSocket {
                             return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
                         }
                     }
-                    LaminarEvent::Timeout(_) => {
-//                        return Ok(SocketEvent::Disconnection);
-                    }
+                    LaminarEvent::Timeout(_) => { }
                 }
             }
             Err(error) => {
