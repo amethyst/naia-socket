@@ -1,6 +1,9 @@
 
-use std::thread;
-use std::time;
+use std::{
+    thread,
+    collections::HashSet,
+    time,
+    net::SocketAddr};
 use log::info;
 
 use laminar::{Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig};
@@ -13,7 +16,8 @@ use crate::error::GaiaServerSocketError;
 
 pub struct UdpServerSocket {
     sender: Sender<LaminarPacket>,
-    receiver: Receiver<LaminarEvent>
+    receiver: Receiver<LaminarEvent>,
+    connected_clients: HashSet<SocketAddr>,
 }
 
 impl UdpServerSocket {
@@ -30,6 +34,7 @@ impl UdpServerSocket {
         UdpServerSocket {
             sender,
             receiver,
+            connected_clients: HashSet::new()
         }
     }
 
@@ -39,21 +44,34 @@ impl UdpServerSocket {
             match self.receiver.recv() {
                 Ok(event) => {
                     match event {
-                        LaminarEvent::Connect(packet_addr) => {
-                            self.sender.send(LaminarPacket::reliable_unordered(packet_addr, SERVER_HANDSHAKE_MESSAGE.to_string().into_bytes()))
-                                .expect("send error");
-
-                            output = Some(Ok(SocketEvent::Connection(packet_addr)));
+                        LaminarEvent::Connect(_) => {
+//                            self.sender.send(LaminarPacket::reliable_unordered(packet_addr, SERVER_HANDSHAKE_MESSAGE.to_string().into_bytes()))
+//                                .expect("send error");
+//
+//                            output = Some(Ok(SocketEvent::Connection(packet_addr)));
                         }
                         LaminarEvent::Packet(packet) => {
-                            let msg = String::from_utf8_lossy(packet.payload());
+                            let message = String::from_utf8_lossy(packet.payload()).to_string();
+                            let address = packet.addr();
 
-                            if !msg.eq(CLIENT_HANDSHAKE_MESSAGE) {
-                                output = Some(Ok(SocketEvent::Message(packet.addr(), msg.to_string())));
+                            if message.eq(CLIENT_HANDSHAKE_MESSAGE) {
+
+                                // Server Handshake
+                                match self.sender.send(LaminarPacket::unreliable(address, SERVER_HANDSHAKE_MESSAGE.to_string().into_bytes())) {
+                                    Ok(_) => {},
+                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                }
+
+                                if !self.connected_clients.contains(&address) {
+                                    self.connected_clients.insert(address);
+                                    output = Some(Ok(SocketEvent::Connection(address)));
+                                }
+                            } else {
+                                output = Some(Ok(SocketEvent::Message(address, message)));
                             }
                         }
-                        LaminarEvent::Timeout(address) => {
-                            output = Some(Ok(SocketEvent::Disconnection(address)));
+                        LaminarEvent::Timeout(_) => {
+//                            output = Some(Ok(SocketEvent::Disconnection(address)));
                         }
                     }
                 }
