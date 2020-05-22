@@ -44,12 +44,7 @@ impl UdpServerSocket {
             match self.receiver.recv() {
                 Ok(event) => {
                     match event {
-                        LaminarEvent::Connect(_) => {
-//                            self.sender.send(LaminarPacket::reliable_unordered(packet_addr, SERVER_HANDSHAKE_MESSAGE.to_string().into_bytes()))
-//                                .expect("send error");
-//
-//                            output = Some(Ok(SocketEvent::Connection(packet_addr)));
-                        }
+                        LaminarEvent::Connect(_) => { }
                         LaminarEvent::Packet(packet) => {
                             let message = String::from_utf8_lossy(packet.payload()).to_string();
                             let address = packet.addr();
@@ -70,9 +65,7 @@ impl UdpServerSocket {
                                 output = Some(Ok(SocketEvent::Message(address, message)));
                             }
                         }
-                        LaminarEvent::Timeout(_) => {
-//                            output = Some(Ok(SocketEvent::Disconnection(address)));
-                        }
+                        LaminarEvent::Timeout(_) => { }
                     }
                 }
                 Err(err) => {
