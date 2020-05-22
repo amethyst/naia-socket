@@ -10,14 +10,12 @@ use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
     time::Duration,
 };
-use async_trait::async_trait;
 use webrtc_unreliable::{Server as RtcServer, MessageType, MessageResult, RecvError, ClientEvent as RtcEvent};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
 use tokio::time::{self, Interval};
 
-use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
@@ -35,9 +33,8 @@ pub struct WebrtcServerSocket {
     message_buf: Vec<u8>,
 }
 
-#[async_trait]
-impl ServerSocket for WebrtcServerSocket {
-    async fn bind(address: &str) -> WebrtcServerSocket {
+impl WebrtcServerSocket {
+    pub async fn bind(address: &str) -> WebrtcServerSocket {
         info!("Hello WebrtcServerSocket!");
 
         let session_listen_addr: SocketAddr = address
@@ -108,7 +105,7 @@ impl ServerSocket for WebrtcServerSocket {
         socket
     }
 
-    async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
+    pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
 
         enum Next {
             ToClientEvent(RtcEvent),
@@ -197,7 +194,7 @@ impl ServerSocket for WebrtcServerSocket {
         }
     }
 
-    fn get_sender(&mut self) -> MessageSender {
+    pub fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.to_server_sender.clone());
     }
 }

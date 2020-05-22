@@ -3,11 +3,9 @@ use std::thread;
 use std::time;
 use log::info;
 
-use async_trait::async_trait;
 use laminar::{Packet as LaminarPacket, Socket as LaminarSocket, SocketEvent as LaminarEvent, Config as LaminarConfig};
 use crossbeam_channel::{self, Receiver, Sender};
 
-use crate::ServerSocket;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE};
@@ -20,9 +18,8 @@ pub struct UdpServerSocket {
     receiver: Receiver<LaminarEvent>
 }
 
-#[async_trait]
-impl ServerSocket for UdpServerSocket {
-    async fn bind(address: &str) -> UdpServerSocket {
+impl UdpServerSocket {
+    pub async fn bind(address: &str) -> UdpServerSocket {
         info!("UDP Server listening on: {}", address);
 
         let mut config = LaminarConfig::default();
@@ -38,7 +35,7 @@ impl ServerSocket for UdpServerSocket {
         }
     }
 
-    async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
+    pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
         let mut output: Option<Result<SocketEvent, GaiaServerSocketError>> = None;
         while output.is_none() {
             match self.receiver.recv() {
@@ -70,7 +67,7 @@ impl ServerSocket for UdpServerSocket {
         return output.unwrap();
     }
 
-    fn get_sender(&mut self) -> MessageSender {
+    pub fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.sender.clone());
     }
 }

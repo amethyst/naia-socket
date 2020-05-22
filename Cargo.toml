@@ -5,8 +5,8 @@ authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
 
 [features]
-use-udp = [ "laminar", "crossbeam-channel", "async-trait" ]
-use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "async-trait", "futures-channel",
+use-udp = [ "laminar", "crossbeam-channel" ]
+use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
     "futures-core", "futures-util" ]
 
 [dependencies]
@@ -19,7 +19,6 @@ webrtc-unreliable = { path = "../webrtc-unreliable", optional = true } # { git =
 clap = { version = "2.32", optional = true}
 hyper = { version = "0.13", features = ["stream"], optional = true }
 tokio = { version = "0.2", features = ["macros"], optional = true }
-async-trait = { version = "0.1.30", optional = true }
 futures-channel = { version = "0.3", features = ["sink"], optional = true }
 futures-core = { version = "0.3", optional = true }
 futures-sink = { version = "0.3", optional = true }

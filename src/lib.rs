@@ -15,5 +15,5 @@ mod client_message;
 mod message_sender;
 mod server_socket;
 
-pub use server_socket::{ServerSocket, ServerSocketImpl};
-pub use socket_event::{SocketEvent};
+pub use server_socket::ServerSocket;
+pub use socket_event::SocketEvent;
