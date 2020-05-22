@@ -1,5 +1,6 @@
 
 extern crate log;
+use log::info;
 
 use std::thread;
 use std::net::SocketAddr;
@@ -16,7 +17,9 @@ use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHA
 pub struct UdpClientSocket {
     address: SocketAddr,
     sender: ChannelSender<LaminarPacket>,
-    receiver: ChannelReceiver<LaminarEvent>
+    receiver: ChannelReceiver<LaminarEvent>,
+    connected: bool,
+    timeout: u16,
 }
 
 impl UdpClientSocket {
@@ -35,48 +38,59 @@ impl UdpClientSocket {
 
         let server_socket_address: SocketAddr = server_address.parse().unwrap();
 
-        //Send initial server handshake
-        let handshake_message: String = CLIENT_HANDSHAKE_MESSAGE.to_string();
-        sender.send(LaminarPacket::reliable_unordered(
-            server_socket_address,
-            handshake_message.clone().into_bytes(),
-        ))
-            .expect("failure sending client handshake");
-
         let _thread = thread::spawn(move || client_socket.start_polling());
 
         UdpClientSocket {
             address: server_socket_address,
             sender,
             receiver,
+            connected: false,
+            timeout: 0,
         }
     }
 
     pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
+
+        if !self.connected {
+            if self.timeout > 0 {
+                self.timeout -= 1;
+            } else {
+                match self.sender.send(LaminarPacket::unreliable(self.address, CLIENT_HANDSHAKE_MESSAGE.to_string().into_bytes())) {
+                    Ok(_) => {},
+                    Err(error) => { return Err(GaiaClientSocketError::Wrapped(Box::new(error))); }
+                }
+
+                self.timeout = 100;
+                return Ok(SocketEvent::None);
+            }
+        }
+
         match self.receiver.recv() {
             Ok(event) => {
                 match event {
                     LaminarEvent::Connect(_) => {
                         // SHOULD NOT EVER GET HERE!, get a SERVER_HANDSHAKE_MESSAGE instead!
-                        return Err(GaiaClientSocketError::Message("Client Socket has received a packet from an unknown host!".to_string()));
+                        //return Err(GaiaClientSocketError::Message("Client Socket has received a packet from an unknown host!".to_string()));
                     }
                     LaminarEvent::Packet(packet) => {
                         if packet.addr() == self.address {
-                            let msg = String::from_utf8_lossy(packet.payload());
+                            let msg = String::from_utf8_lossy(packet.payload()).to_string();
 
                             if msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                                return Ok(SocketEvent::Connection);
+                                if !self.connected {
+                                    self.connected = true;
+                                    return Ok(SocketEvent::Connection);
+                                }
                             }
                             else {
-                                return Ok(SocketEvent::Message(msg.to_string()));
+                                return Ok(SocketEvent::Message(msg));
                             }
                         } else {
                             return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
                         }
                     }
                     LaminarEvent::Timeout(_) => {
-
-                        return Ok(SocketEvent::Disconnection);
+//                        return Ok(SocketEvent::Disconnection);
                     }
                 }
             }
@@ -84,6 +98,8 @@ impl UdpClientSocket {
                 return Err(GaiaClientSocketError::Wrapped(Box::new(error)));
             }
         }
+
+        return Ok(SocketEvent::None);
     }
 
     pub fn get_sender(&mut self) -> MessageSender {

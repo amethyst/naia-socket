@@ -39,7 +39,6 @@ impl WebrtcClientSocket {
             if self.timeout > 0 {
                 self.timeout -= 1;
             } else {
-                info!("sending handshake");
                 self.data_channel.send_with_str(CLIENT_HANDSHAKE_MESSAGE);
                 self.timeout = 100;
                 return Ok(SocketEvent::None);
@@ -57,7 +56,6 @@ impl WebrtcClientSocket {
                 Ok(SocketEvent::Message(inner_msg)) => {
                     if inner_msg.eq(SERVER_HANDSHAKE_MESSAGE) {
                         if !self.connected {
-                            info!("got handshake!");
                             self.connected = true;
                             return Ok(SocketEvent::Connection);
                         }
