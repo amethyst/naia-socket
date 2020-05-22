@@ -25,14 +25,11 @@ pub struct UdpClientSocket {
 impl UdpClientSocket {
     pub fn connect(server_address: &str, config: Option<Config>) -> UdpClientSocket {
 
-        let mut config = LaminarConfig::default();
-        config.heartbeat_interval = Option::Some(time::Duration::from_millis(500));
-
         let client_ip_address = find_my_ip_address::get();
         let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
         let client_socket_address = client_ip_address + ":" + free_socket.to_string().as_str();
 
-        let mut client_socket = LaminarSocket::bind_with_config(client_socket_address, config).unwrap();
+        let mut client_socket = LaminarSocket::bind(client_socket_address).unwrap();
 
         let (sender, receiver): (ChannelSender<LaminarPacket>, ChannelReceiver<LaminarEvent>) = (client_socket.get_packet_sender(), client_socket.get_event_receiver());
 
