@@ -1,9 +1,10 @@
 
 use std::{
     collections::HashSet,
-    net::{SocketAddr, UdpSocket}};
-use std::cell::RefCell;
-use std::rc::Rc;
+    net::{SocketAddr, UdpSocket},
+    cell::RefCell,
+    rc::Rc,
+};
 use log::info;
 
 use super::socket_event::SocketEvent;
