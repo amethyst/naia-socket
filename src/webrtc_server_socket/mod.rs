@@ -22,7 +22,7 @@ use super::socket_event::SocketEvent;
 use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 use crate::error::GaiaServerSocketError;
-use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
+use gaia_socket_shared::{MessageHeader, Config, StringUtils};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_INTERVAL: Duration = Duration::from_secs(1);
@@ -149,23 +149,27 @@ impl WebrtcServerSocket {
                 Next::ToClientMessage(to_client_message) => {
                     match to_client_message {
                         Ok((address, message)) => {
-                            if message.eq(CLIENT_HANDSHAKE_MESSAGE) {
+                            let header: MessageHeader = message.peek_front().into();
+                            match header {
+                                MessageHeader::ClientHandshake => {
+                                    // Server Handshake
+                                    if let Err(error) = self.rtc_server.send(
+                                        &[MessageHeader::ServerHandshake as u8],
+                                        MessageType::Text,
+                                        &address)
+                                        .await {
+                                        return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
+                                    }
 
-                                // Server Handshake
-                                if let Err(error) = self.rtc_server.send(
-                                    SERVER_HANDSHAKE_MESSAGE.as_bytes(),
-                                    MessageType::Text,
-                                    &address)
-                                    .await {
-                                    return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
+                                    if !self.connected_clients.contains(&address) {
+                                        self.connected_clients.insert(address);
+                                        return Ok(SocketEvent::Connection(address));
+                                    }
                                 }
-
-                                if !self.connected_clients.contains(&address) {
-                                    self.connected_clients.insert(address);
-                                    return Ok(SocketEvent::Connection(address));
+                                MessageHeader::Data => {
+                                    return Ok(SocketEvent::Message(address, message.trim_front(1))); // trimming gets rid of the header
                                 }
-                            } else {
-                                return Ok(SocketEvent::Message(address, message));
+                                _ => {}
                             }
                         }
                         Err(err) => {

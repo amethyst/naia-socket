@@ -9,7 +9,7 @@ use log::info;
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
+use gaia_socket_shared::{MessageHeader, Config, StringUtils, DEFAULT_MTU};
 use crate::error::GaiaServerSocketError;
 
 pub struct UdpServerSocket {
@@ -27,7 +27,7 @@ impl UdpServerSocket {
         UdpServerSocket {
             connected_clients: HashSet::new(),
             socket,
-            receive_buffer: vec![0; 1400], //should be input from config
+            receive_buffer: vec![0; DEFAULT_MTU as usize], //should be input from config
         }
     }
 
@@ -42,27 +42,29 @@ impl UdpServerSocket {
                 .map(move |(recv_len, address)| (&buffer[..recv_len], address))
             {
                 Ok((payload, address)) => {
-                    let message = String::from_utf8_lossy(payload).to_string();
+                    let header: MessageHeader = payload[0].into();
+                    match header {
+                        MessageHeader::ClientHandshake => {
+                            // Server Handshake
+                            match self.socket
+                                .borrow()
+                                .send_to(&[MessageHeader::ServerHandshake as u8], address)
+                                {
+                                    Ok(_) => {},
+                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                }
 
-                    if message.eq(CLIENT_HANDSHAKE_MESSAGE) {
-
-                        // Server Handshake
-                        match self.socket
-                            .borrow()
-                            .send_to(SERVER_HANDSHAKE_MESSAGE.to_string().as_bytes(), address)
-                        {
-                            Ok(_) => {},
-                            Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                            if !self.connected_clients.contains(&address) {
+                                self.connected_clients.insert(address);
+                                output = Some(Ok(SocketEvent::Connection(address)));
+                            }
                         }
-
-                        if !self.connected_clients.contains(&address) {
-                            self.connected_clients.insert(address);
-                            output = Some(Ok(SocketEvent::Connection(address)));
+                        MessageHeader::Data => {
+                            let message = String::from_utf8_lossy(payload).to_string();
+                            output = Some(Ok(SocketEvent::Message(address, message.trim_front(1))));
                         }
-                    } else {
-                        output = Some(Ok(SocketEvent::Message(address, message)));
+                        _ => {}
                     }
-
                 }
                 Err(err) => {
                     output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(err))));
