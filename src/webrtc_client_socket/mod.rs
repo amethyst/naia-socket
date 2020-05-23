@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
+use gaia_socket_shared::{MessageHeader, Config, StringUtils};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
@@ -39,7 +39,7 @@ impl WebrtcClientSocket {
             if self.timeout > 0 {
                 self.timeout -= 1;
             } else {
-                self.data_channel.send_with_str(CLIENT_HANDSHAKE_MESSAGE);
+                self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::ClientHandshake as u8]).unwrap());
                 self.timeout = 100;
                 return Ok(SocketEvent::None);
             }
@@ -54,13 +54,18 @@ impl WebrtcClientSocket {
                 .pop_front()
                 .expect("message queue shouldn't be empty!") {
                 Ok(SocketEvent::Message(inner_msg)) => {
-                    if inner_msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                        if !self.connected {
-                            self.connected = true;
-                            return Ok(SocketEvent::Connection);
+                    let header: MessageHeader = inner_msg.peek_front().into();
+                    match header {
+                        MessageHeader::ServerHandshake => {
+                            if !self.connected {
+                                self.connected = true;
+                                return Ok(SocketEvent::Connection);
+                            }
                         }
-                    } else {
-                        return Ok(SocketEvent::Message(inner_msg));
+                        MessageHeader::Data => {
+                            return Ok(SocketEvent::Message(inner_msg.trim_front(1)));
+                        }
+                        _ => {}
                     }
                 }
                 Ok(inner) => { return Ok(inner); }

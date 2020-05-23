@@ -22,9 +22,11 @@ cfg_if! {
         }
     }
     else {
-        use std::net::{SocketAddr, UdpSocket};
-        use std::rc::Rc;
-        use std::cell::RefCell;
+        use std::{
+            net::{SocketAddr, UdpSocket},
+            rc::Rc,
+            cell::RefCell
+        };
 
         pub struct MessageSender {
             address: SocketAddr,

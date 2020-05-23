@@ -10,7 +10,7 @@ use std::{
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, SERVER_HANDSHAKE_MESSAGE, CLIENT_HANDSHAKE_MESSAGE, Config};
+use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, StringUtils, DEFAULT_MTU};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -36,7 +36,7 @@ impl UdpClientSocket {
             connected: false,
             timeout: 0,
             socket,
-            receive_buffer: vec![0; 1400], //should be input from config
+            receive_buffer: vec![0; DEFAULT_MTU as usize],
         }
     }
 
@@ -49,7 +49,7 @@ impl UdpClientSocket {
 
                 match self.socket
                     .borrow()
-                    .send_to(CLIENT_HANDSHAKE_MESSAGE.to_string().as_bytes(), self.address)
+                    .send_to(&[MessageHeader::ClientHandshake as u8], self.address)
                 {
                     Ok(_) => { }
                     Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
@@ -68,16 +68,19 @@ impl UdpClientSocket {
         {
             Ok((payload, address)) => {
                 if address == self.address {
-                    let msg = String::from_utf8_lossy(payload).to_string();
-
-                    if msg.eq(SERVER_HANDSHAKE_MESSAGE) {
-                        if !self.connected {
-                            self.connected = true;
-                            return Ok(SocketEvent::Connection);
+                    let header: MessageHeader = payload[0].into();
+                    match header {
+                        MessageHeader::ServerHandshake => {
+                            if !self.connected {
+                                self.connected = true;
+                                return Ok(SocketEvent::Connection);
+                            }
                         }
-                    }
-                    else {
-                        return Ok(SocketEvent::Message(msg));
+                        MessageHeader::Data => {
+                            let msg = String::from_utf8_lossy(payload).to_string().trim_front(1);
+                            return Ok(SocketEvent::Message(msg));
+                        }
+                        _ => {}
                     }
                 } else {
                     return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
