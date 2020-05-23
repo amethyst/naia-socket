@@ -9,10 +9,6 @@ log = "0.4"
 gaia-socket-shared = { path = "../gaia-socket-shared" } # { git = "https://github.com/connorcarpenter/gaia-socket-shared" } #
 cfg-if = "*"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar" }
-crossbeam-channel = { version = "0.3" }
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 url = "2.1.1"
 wasm-bindgen = { version = "0.2.45", features = [ "serde-serialize" ] }

@@ -22,26 +22,29 @@ cfg_if! {
         }
     }
     else {
-        use std::net::SocketAddr;
-        use crossbeam_channel;
-        use laminar::Packet as LaminarPacket;
+        use std::net::{SocketAddr, UdpSocket};
+        use std::rc::Rc;
+        use std::cell::RefCell;
 
         pub struct MessageSender {
-            internal: crossbeam_channel::Sender<LaminarPacket>,
-            address: SocketAddr
+            address: SocketAddr,
+            socket: Rc<RefCell<UdpSocket>>,
         }
 
         impl MessageSender {
-            pub fn new(address: SocketAddr, sender: crossbeam_channel::Sender<LaminarPacket>) -> MessageSender {
+            pub fn new(address: SocketAddr, socket: Rc<RefCell<UdpSocket>>) -> MessageSender {
                 MessageSender {
-                    internal: sender,
-                    address
+                    address,
+                    socket,
                 }
             }
             pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
-                match self.internal.send(LaminarPacket::unreliable(self.address,message.into_bytes())) {
-                    Ok(content) => { Ok(content) },
-                    Err(error) => { return Err(Box::new(error)); }
+                match self.socket
+                    .borrow()
+                    .send_to(message.as_bytes(), self.address)
+                {
+                    Ok(_) => { Ok(()) }
+                    Err(err) => { Err(Box::new(err)) }
                 }
             }
         }
