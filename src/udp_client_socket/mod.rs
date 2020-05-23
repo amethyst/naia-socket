@@ -1,9 +1,11 @@
 
 extern crate log;
 
-use std::net::{SocketAddr, UdpSocket};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{
+    net::{SocketAddr, UdpSocket},
+    cell::RefCell,
+    rc::Rc
+};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
