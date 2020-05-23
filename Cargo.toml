@@ -5,7 +5,7 @@ authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
 
 [features]
-use-udp = [ "laminar", "crossbeam-channel" ]
+use-udp = [ ]
 use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
     "futures-core", "futures-util" ]
 
@@ -13,8 +13,6 @@ use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
 gaia-socket-shared = { path = "../gaia-socket-shared" } # { git = "https://github.com/connorcarpenter/gaia-socket-shared" } #
 log = "0.4"
 cfg-if = "*"
-laminar = { version = "0.3.2", git = "https://github.com/amethyst/laminar", optional = true }
-crossbeam-channel = { version = "0.3", optional = true }
 webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true }
 clap = { version = "2.32", optional = true}
 hyper = { version = "0.13", features = ["stream"], optional = true }

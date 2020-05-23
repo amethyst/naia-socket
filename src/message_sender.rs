@@ -28,24 +28,28 @@ cfg_if! {
     }
     else if #[cfg(feature = "use-udp")] {
         /// UDP Message Sender
-        use crossbeam_channel;
-        use laminar::Packet as LaminarPacket;
+        use std::net::UdpSocket;
+        use std::rc::Rc;
+        use std::cell::RefCell;
 
         pub struct MessageSender {
-            internal: crossbeam_channel::Sender<LaminarPacket>,
+            socket: Rc<RefCell<UdpSocket>>,
         }
 
         impl MessageSender {
-            pub fn new(sender: crossbeam_channel::Sender<LaminarPacket>) -> MessageSender {
+            pub fn new(socket: Rc<RefCell<UdpSocket>>) -> MessageSender {
                 MessageSender {
-                    internal: sender
+                    socket
                 }
             }
             pub async fn send(&mut self, message: ClientMessage) -> Result<(), Box<dyn Error + Send>> {
                 let (address, message) = message;
-                match self.internal.send(LaminarPacket::unreliable(address,message.into_bytes())) {
-                    Ok(content) => { Ok(content) },
-                    Err(error) => { return Err(Box::new(error)); }
+                match self.socket
+                    .borrow()
+                    .send_to(message.as_bytes(), address)
+                {
+                    Ok(_) => { Ok(()) }
+                    Err(err) => { Err(Box::new(err)) }
                 }
             }
         }
