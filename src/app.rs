@@ -9,6 +9,7 @@ const PONG_MSG: &str = "pong";
 pub struct App {
     client_socket: ClientSocket,
     message_sender: Option<MessageSender>,
+    message_count: u8,
 }
 
 impl App {
@@ -16,6 +17,7 @@ impl App {
         let mut app = App {
             client_socket: ClientSocket::connect(&server_socket_address, config),
             message_sender: None,
+            message_count: 0,
         };
 
         app.message_sender = Some(app.client_socket.get_sender());
@@ -38,7 +40,8 @@ impl App {
                     SocketEvent::Message(message) => {
                         info!("Client recv: {}", message);
 
-                        if message.eq(&PONG_MSG.to_string()) {
+                        if message.eq(&PONG_MSG.to_string()) && self.message_count < 10 {
+                            self.message_count += 1;
                             let to_server_message: String = PING_MSG.to_string();
                             info!("Client send: {}", to_server_message);
                             self.message_sender.as_mut().unwrap().send(to_server_message)
