@@ -78,6 +78,9 @@ impl WebrtcClientSocket {
                         MessageHeader::Data => {
                             return Ok(SocketEvent::Message(inner_msg.trim_front(1)));
                         }
+                        MessageHeader::Heartbeat => {
+                            info!("Heartbeat");
+                        }
                         _ => {}
                     }
                 }
