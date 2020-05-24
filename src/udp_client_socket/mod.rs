@@ -114,7 +114,7 @@ impl UdpClientSocket {
                             return Ok(SocketEvent::Message(msg));
                         }
                         MessageHeader::Heartbeat => {
-                            info!("Heartbeat");
+                            // Already registered heartbeat, no need for more
                         }
                         _ => {}
                     }

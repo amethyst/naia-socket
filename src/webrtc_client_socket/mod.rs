@@ -89,7 +89,7 @@ impl WebrtcClientSocket {
                             return Ok(SocketEvent::Message(inner_msg.trim_front(1)));
                         }
                         MessageHeader::Heartbeat => {
-                            info!("Heartbeat");
+                            // Already registered heartbeat, no need for more
                         }
                         _ => {}
                     }
