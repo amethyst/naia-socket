@@ -28,8 +28,6 @@ cfg_if! {
             }
 
             pub fn should_send_heartbeat(&self) -> bool {
-                //let now = Date::now();
-                //info!("testing heartbeat. last: {}, now: {}, difference: {}", self.last_sent, now, self.last_sent - now);
                 (Date::now() - self.last_sent) > self.heartbeat_interval
             }
         }
