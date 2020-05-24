@@ -169,6 +169,9 @@ impl WebrtcServerSocket {
                                 MessageHeader::Data => {
                                     return Ok(SocketEvent::Message(address, message.trim_front(1))); // trimming gets rid of the header
                                 }
+                                MessageHeader::Heartbeat => {
+                                    info!("Heartbeat");
+                                }
                                 _ => {}
                             }
                         }

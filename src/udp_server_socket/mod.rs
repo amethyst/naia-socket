@@ -63,6 +63,9 @@ impl UdpServerSocket {
                             let message = String::from_utf8_lossy(payload).to_string();
                             output = Some(Ok(SocketEvent::Message(address, message.trim_front(1))));
                         }
+                        MessageHeader::Heartbeat => {
+                            info!("Heartbeat");
+                        }
                         _ => {}
                     }
                 }
