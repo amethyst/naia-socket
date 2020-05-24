@@ -33,18 +33,25 @@ cfg_if! {
     }
     else if #[cfg(feature = "use-udp")] {
         /// UDP Message Sender
-        use std::net::UdpSocket;
-        use std::rc::Rc;
-        use std::cell::RefCell;
+        use std::{
+            rc::Rc,
+            cell::RefCell,
+            net::{SocketAddr, UdpSocket},
+            collections::HashMap,
+        };
+        use gaia_socket_shared::ConnectionManager;
 
+        #[derive(Clone)]
         pub struct MessageSender {
             socket: Rc<RefCell<UdpSocket>>,
+            clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>,
         }
 
         impl MessageSender {
-            pub fn new(socket: Rc<RefCell<UdpSocket>>) -> MessageSender {
+            pub fn new(socket: Rc<RefCell<UdpSocket>>, clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>) -> MessageSender {
                 MessageSender {
-                    socket
+                    socket,
+                    clients,
                 }
             }
             pub async fn send(&mut self, message: ClientMessage) -> Result<(), Box<dyn Error + Send>> {
@@ -53,7 +60,17 @@ cfg_if! {
                     .borrow()
                     .send_to(message.push_front(MessageHeader::Data as u8).as_bytes(), address)
                 {
-                    Ok(_) => { Ok(()) }
+                    Ok(_) => {
+                        match self.clients.borrow_mut().get_mut(&address) {
+                            Some(connection) => {
+                                connection.mark_sent();
+                            }
+                            None => {
+                                //sending to an unknown address??
+                            }
+                        }
+                        Ok(())
+                    }
                     Err(err) => { Err(Box::new(err)) }
                 }
             }
