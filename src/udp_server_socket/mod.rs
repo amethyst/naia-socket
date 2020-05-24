@@ -1,6 +1,6 @@
 
 use std::{
-    collections::HashMap,
+    collections::{VecDeque, HashMap},
     net::{SocketAddr, UdpSocket},
     cell::RefCell,
     rc::Rc,
@@ -21,6 +21,8 @@ pub struct UdpServerSocket {
     heartbeat_timer: ConnectionManager,
     clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>,
     heartbeat_interval: Duration,
+    timeout_duration: Duration,
+    outstanding_disconnects: VecDeque<SocketAddr>,
 }
 
 impl UdpServerSocket {
@@ -30,8 +32,10 @@ impl UdpServerSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 
-        let heartbeat_interval = config.unwrap().heartbeat_interval / 2;
-        let heartbeat_timer = ConnectionManager::new(heartbeat_interval);
+        let some_config = config.unwrap();
+        let timeout_duration = some_config.idle_connection_timeout;
+        let heartbeat_interval = some_config.heartbeat_interval / 2;
+        let heartbeat_timer = ConnectionManager::new(heartbeat_interval, timeout_duration);
         let clients_map = Rc::new(RefCell::new(HashMap::new()));
         let message_sender = MessageSender::new(socket.clone(), clients_map.clone());
 
@@ -41,7 +45,9 @@ impl UdpServerSocket {
             message_sender,
             heartbeat_timer,
             clients: clients_map,
-            heartbeat_interval
+            heartbeat_interval,
+            timeout_duration,
+            outstanding_disconnects: VecDeque::new()
         }
     }
 
@@ -54,7 +60,10 @@ impl UdpServerSocket {
                 self.heartbeat_timer.mark_sent();
 
                 for (address, connection) in self.clients.borrow_mut().iter_mut() {
-                    if connection.should_send_heartbeat() {
+                    if connection.should_drop() {
+                        self.outstanding_disconnects.push_back(*address);
+                    }
+                    else if connection.should_send_heartbeat() {
                         match self.socket
                             .borrow()
                             .send_to(&[MessageHeader::Heartbeat as u8], address)
@@ -68,6 +77,11 @@ impl UdpServerSocket {
                 }
             }
 
+            if let Some(addr) = self.outstanding_disconnects.pop_front() {
+                self.clients.borrow_mut().remove(&addr);
+                output = Some(Ok(SocketEvent::Disconnection(addr)));
+            }
+
             let buffer: &mut [u8] = self.receive_buffer.as_mut();
             match self.socket
                 .borrow()
@@ -75,6 +89,16 @@ impl UdpServerSocket {
                 .map(move |(recv_len, address)| (&buffer[..recv_len], address))
             {
                 Ok((payload, address)) => {
+
+                    match self.clients.borrow_mut().get_mut(&address) {
+                        Some(connection) => {
+                            connection.mark_heard();
+                        }
+                        None => {
+                            //not yet established connection
+                        }
+                    }
+
                     let header: MessageHeader = payload[0].into();
                     match header {
                         MessageHeader::ClientHandshake => {
@@ -88,7 +112,7 @@ impl UdpServerSocket {
                                 }
 
                             if !self.clients.borrow().contains_key(&address) {
-                                self.clients.borrow_mut().insert(address, ConnectionManager::new(self.heartbeat_interval));
+                                self.clients.borrow_mut().insert(address, ConnectionManager::new(self.heartbeat_interval, self.timeout_duration));
                                 output = Some(Ok(SocketEvent::Connection(address)));
                             }
                         }
@@ -97,7 +121,7 @@ impl UdpServerSocket {
                             output = Some(Ok(SocketEvent::Message(address, message.trim_front(1))));
                         }
                         MessageHeader::Heartbeat => {
-                            info!("Heartbeat");
+                            // Already registered heartbeat, no need for more
                         }
                         _ => {}
                     }

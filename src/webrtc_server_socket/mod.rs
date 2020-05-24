@@ -10,7 +10,7 @@ use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
     time::Duration,
     io::{Error as IoError},
-    collections::HashMap,
+    collections::{VecDeque, HashMap},
 };
 use webrtc_unreliable::{Server as RtcServer, MessageType};
 
@@ -33,8 +33,10 @@ pub struct WebrtcServerSocket {
     periodic_timer: Interval,
     heartbeat_timer: Interval,
     heartbeat_interval: Duration,
+    timeout_duration: Duration,
     rtc_server: RtcServer,
     clients: HashMap<SocketAddr, ConnectionManager>,
+    outstanding_disconnects: VecDeque<SocketAddr>,
 }
 
 impl WebrtcServerSocket {
@@ -54,7 +56,9 @@ impl WebrtcServerSocket {
         let rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
 
-        let heartbeat_interval = config.unwrap().heartbeat_interval / 2;
+        let some_config = config.unwrap();
+        let heartbeat_interval = some_config.heartbeat_interval / 2;
+        let timeout_duration = some_config.idle_connection_timeout;
 
         let socket = WebrtcServerSocket {
             to_client_sender,
@@ -63,7 +67,9 @@ impl WebrtcServerSocket {
             periodic_timer: time::interval(PERIODIC_TIMER_DURATION),
             heartbeat_timer: time::interval(heartbeat_interval),
             heartbeat_interval,
+            timeout_duration,
             clients: HashMap::new(),
+            outstanding_disconnects: VecDeque::new()
         };
 
         let session_endpoint = socket.rtc_server.session_endpoint();
@@ -118,6 +124,11 @@ impl WebrtcServerSocket {
             HeartbeatTimer,
         }
 
+        if let Some(addr) = self.outstanding_disconnects.pop_front() {
+            self.clients.remove(&addr);
+            return Ok(SocketEvent::Disconnection(addr));
+        }
+
         loop {
             let next = {
                 let timer_next = self.periodic_timer.tick().fuse();
@@ -162,6 +173,16 @@ impl WebrtcServerSocket {
                 Next::FromClientMessage(from_client_message) => {
                     match from_client_message {
                         Ok((address, message)) => {
+
+                            match self.clients.get_mut(&address) {
+                                Some(connection) => {
+                                    connection.mark_heard();
+                                }
+                                None => {
+                                    //not yet established connection
+                                }
+                            }
+
                             let header: MessageHeader = message.peek_front().into();
                             match header {
                                 MessageHeader::ClientHandshake => {
@@ -175,7 +196,7 @@ impl WebrtcServerSocket {
                                     }
 
                                     if !self.clients.contains_key(&address) {
-                                        self.clients.insert(address, ConnectionManager::new(self.heartbeat_interval));
+                                        self.clients.insert(address, ConnectionManager::new(self.heartbeat_interval, self.timeout_duration));
                                         return Ok(SocketEvent::Connection(address));
                                     }
                                 }
@@ -183,7 +204,7 @@ impl WebrtcServerSocket {
                                     return Ok(SocketEvent::Message(address, message.trim_front(1))); // trimming gets rid of the header
                                 }
                                 MessageHeader::Heartbeat => {
-                                    info!("Heartbeat");
+                                    // Already registered heartbeat, no need for more
                                 }
                                 _ => {}
                             }
@@ -219,8 +240,12 @@ impl WebrtcServerSocket {
                     return Ok(SocketEvent::Tick);
                 }
                 Next::HeartbeatTimer => {
+
                     for (address, connection) in self.clients.iter_mut() {
-                        if connection.should_send_heartbeat() {
+                        if connection.should_drop() {
+                            self.outstanding_disconnects.push_back(*address);
+                        }
+                        else if connection.should_send_heartbeat() {
                             match self.rtc_server.send(
                                 &[MessageHeader::Heartbeat as u8],
                                 MessageType::Text,
@@ -235,6 +260,11 @@ impl WebrtcServerSocket {
                                     }
                                 }
                         }
+                    }
+
+                    if let Some(addr) = self.outstanding_disconnects.pop_front() {
+                        self.clients.remove(&addr);
+                        return Ok(SocketEvent::Disconnection(addr));
                     }
                 }
             }
