@@ -1,6 +1,9 @@
 
-pub use super::client_message::ClientMessage;
 use std::error::Error;
+
+use gaia_socket_shared::{MessageHeader, StringUtils};
+
+pub use super::client_message::ClientMessage;
 
 cfg_if! {
     if #[cfg(feature = "use-webrtc")] {
@@ -19,7 +22,9 @@ cfg_if! {
                 }
             }
             pub async fn send(&mut self, message: ClientMessage) -> Result<(), Box<dyn Error + Send>> {
-                match self.internal.send(message).await {
+                let (address, msg_str) = message;
+                let new_message = (address, msg_str.push_front(MessageHeader::Data as u8));
+                match self.internal.send(new_message).await {
                     Ok(content) => { Ok(content) },
                     Err(error) => { return Err(Box::new(error)); }
                 }
@@ -46,7 +51,7 @@ cfg_if! {
                 let (address, message) = message;
                 match self.socket
                     .borrow()
-                    .send_to(message.as_bytes(), address)
+                    .send_to(message.push_front(MessageHeader::Data as u8).as_bytes(), address)
                 {
                     Ok(_) => { Ok(()) }
                     Err(err) => { Err(Box::new(err)) }
