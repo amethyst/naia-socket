@@ -28,7 +28,10 @@ impl WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
 
         let data_channel = webrtc_initialize(server_address, message_queue.clone());
-        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(config.unwrap().heartbeat_interval)));
+        let some_config = config.unwrap();
+        let heartbeat_interval = some_config.heartbeat_interval;
+        let timeout_duration = some_config.idle_connection_timeout;
+        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(heartbeat_interval, timeout_duration)));
         let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone());
 
         WebrtcClientSocket {
@@ -44,18 +47,22 @@ impl WebrtcClientSocket {
 
     pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
 
-        if !self.connected {
+        if self.connected {
+            if self.connection_manager.borrow().should_drop() {
+                self.connected = false;
+                return Ok(SocketEvent::Disconnection);
+            }
+            if self.connection_manager.borrow().should_send_heartbeat() {
+                self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap());
+                self.connection_manager.borrow_mut().mark_sent();
+            }
+        } else {
             if self.timeout > 0 {
                 self.timeout -= 1;
             } else {
                 self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::ClientHandshake as u8]).unwrap());
                 self.timeout = 100;
             }
-        }
-
-        if self.connection_manager.borrow().should_send_heartbeat() {
-            self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap());
-            self.connection_manager.borrow_mut().mark_sent();
         }
 
         loop {
@@ -67,6 +74,9 @@ impl WebrtcClientSocket {
                 .pop_front()
                 .expect("message queue shouldn't be empty!") {
                 Ok(SocketEvent::Message(inner_msg)) => {
+
+                    self.connection_manager.borrow_mut().mark_heard();
+
                     let header: MessageHeader = inner_msg.peek_front().into();
                     match header {
                         MessageHeader::ServerHandshake => {
