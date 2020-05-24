@@ -1,6 +1,8 @@
 
 use std::error::Error;
 
+use gaia_socket_shared::{MessageHeader, StringUtils};
+
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use web_sys::RtcDataChannel;
@@ -16,7 +18,7 @@ cfg_if! {
                 }
             }
             pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
-                self.data_channel.send_with_str(&message);
+                self.data_channel.send_with_str(&message.push_front(MessageHeader::Data as u8));
                 Ok(())
             }
         }
@@ -43,7 +45,7 @@ cfg_if! {
             pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
                 match self.socket
                     .borrow()
-                    .send_to(message.as_bytes(), self.address)
+                    .send_to(message.push_front(MessageHeader::Data as u8).as_bytes(), self.address)
                 {
                     Ok(_) => { Ok(()) }
                     Err(err) => { Err(Box::new(err)) }
