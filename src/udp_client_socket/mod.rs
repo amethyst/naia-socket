@@ -72,7 +72,13 @@ impl UdpClientSocket {
         }
 
         if self.connection_manager.borrow().should_send_heartbeat() {
-            self.message_sender.send(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap().to_string());
+            match self.socket
+                .borrow()
+                .send_to(&[MessageHeader::Heartbeat as u8], self.address)
+                {
+                    Ok(_) => { self.connection_manager.borrow_mut().mark_sent(); }
+                    Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
+                }
         }
 
         let buffer: &mut [u8] = self.receive_buffer.as_mut();

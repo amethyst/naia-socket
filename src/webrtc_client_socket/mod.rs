@@ -1,4 +1,7 @@
 
+extern crate log;
+use log::info;
+
 use std::net::SocketAddr;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -51,7 +54,8 @@ impl WebrtcClientSocket {
         }
 
         if self.connection_manager.borrow().should_send_heartbeat() {
-            self.message_sender.send(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap().to_string());
+            self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap());
+            self.connection_manager.borrow_mut().mark_sent();
         }
 
         loop {
@@ -93,8 +97,6 @@ impl WebrtcClientSocket {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-use log::info;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{ JsCast, JsValue };
