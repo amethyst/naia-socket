@@ -10,15 +10,19 @@ cfg_if! {
         use js_sys::Date;
 
         pub struct ConnectionManager {
-            heartbeat_interval: f64,
+            heartbeat_duration: f64,
+            timeout_duration: f64,
             last_sent: f64,
+            last_heard: f64,
         }
 
         impl ConnectionManager {
-            pub fn new(heartbeat_interval: Duration) -> Self {
+            pub fn new(heartbeat_duration: Duration, timeout_duration: Duration) -> Self {
                 ConnectionManager {
                     last_sent: Date::now(),
-                    heartbeat_interval: heartbeat_interval.as_millis() as f64,
+                    last_heard: Date::now(),
+                    heartbeat_duration: heartbeat_duration.as_millis() as f64,
+                    timeout_duration: timeout_duration.as_millis() as f64,
                 }
             }
 
@@ -27,7 +31,15 @@ cfg_if! {
             }
 
             pub fn should_send_heartbeat(&self) -> bool {
-                (Date::now() - self.last_sent) > self.heartbeat_interval
+                (Date::now() - self.last_sent) > self.heartbeat_duration
+            }
+
+            pub fn mark_heard(&mut self) {
+                self.last_heard = Date::now();
+            }
+
+            pub fn should_drop(&self) -> bool {
+                (Date::now() - self.last_heard) > self.timeout_duration
             }
         }
     }
@@ -36,15 +48,19 @@ cfg_if! {
         use std::time::{Duration, Instant};
 
         pub struct ConnectionManager {
-            heartbeat_interval: Duration,
+            heartbeat_duration: Duration,
             last_sent: Instant,
+            timeout_duration: Duration,
+            last_heard: Instant,
         }
 
         impl ConnectionManager {
-            pub fn new(heartbeat_interval: Duration) -> Self {
+            pub fn new(heartbeat_duration: Duration, timeout_duration: Duration) -> Self {
                 ConnectionManager {
                     last_sent: Instant::now(),
-                    heartbeat_interval,
+                    heartbeat_duration,
+                    last_heard: Instant::now(),
+                    timeout_duration,
                 }
             }
 
@@ -53,7 +69,15 @@ cfg_if! {
             }
 
             pub fn should_send_heartbeat(&self) -> bool {
-                Instant::now().duration_since(self.last_sent) > self.heartbeat_interval
+                Instant::now().duration_since(self.last_sent) > self.heartbeat_duration
+            }
+
+            pub fn mark_heard(&mut self) {
+                self.last_heard = Instant::now();
+            }
+
+            pub fn should_drop(&self) -> bool {
+                Instant::now().duration_since(self.last_heard) > self.timeout_duration
             }
         }
     }
