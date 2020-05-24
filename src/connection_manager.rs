@@ -1,5 +1,4 @@
 extern crate log;
-use log::info;
 
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
