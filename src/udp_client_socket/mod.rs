@@ -4,13 +4,14 @@ extern crate log;
 use std::{
     net::{SocketAddr, UdpSocket},
     cell::RefCell,
-    rc::Rc
+    rc::Rc,
+    io::ErrorKind,
 };
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, StringUtils, DEFAULT_MTU};
+use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, StringUtils, ConnectionManager, DEFAULT_MTU};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -18,10 +19,16 @@ pub struct UdpClientSocket {
     timeout: u16,
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
+    connection_manager: Rc<RefCell<ConnectionManager>>,
+    message_sender: MessageSender
 }
 
 impl UdpClientSocket {
-    pub fn connect(server_address: &str, config: Option<Config>) -> UdpClientSocket {
+    pub fn connect(server_address: &str, mut config: Option<Config>) -> UdpClientSocket {
+
+        if config.is_none() {
+            config = Some(Config::default());
+        }
 
         let client_ip_address = find_my_ip_address::get();
         let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
@@ -30,6 +37,9 @@ impl UdpClientSocket {
         let server_socket_address: SocketAddr = server_address.parse().unwrap();
 
         let socket = Rc::new(RefCell::new(UdpSocket::bind(client_socket_address).unwrap()));
+        socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
+        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(config.unwrap().heartbeat_interval)));
+        let message_sender = MessageSender::new(server_socket_address, socket.clone(), connection_manager.clone());
 
         UdpClientSocket {
             address: server_socket_address,
@@ -37,6 +47,8 @@ impl UdpClientSocket {
             timeout: 0,
             socket,
             receive_buffer: vec![0; DEFAULT_MTU as usize],
+            connection_manager,
+            message_sender
         }
     }
 
@@ -56,8 +68,11 @@ impl UdpClientSocket {
                 }
 
                 self.timeout = 100;
-                return Ok(SocketEvent::None);
             }
+        }
+
+        if self.connection_manager.borrow().should_send_heartbeat() {
+            self.message_sender.send(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap().to_string());
         }
 
         let buffer: &mut [u8] = self.receive_buffer.as_mut();
@@ -86,6 +101,10 @@ impl UdpClientSocket {
                     return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
                 }
             }
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                //just didn't receive anything this time
+                return Ok(SocketEvent::None);
+            }
             Err(e) => {
                 return Err(GaiaClientSocketError::Wrapped(Box::new(e)));
             }
@@ -95,7 +114,7 @@ impl UdpClientSocket {
     }
 
     pub fn get_sender(&mut self) -> MessageSender {
-        return MessageSender::new(self.address, self.socket.clone());
+        return self.message_sender.clone();
     }
 
     pub fn server_address(&self) -> SocketAddr {

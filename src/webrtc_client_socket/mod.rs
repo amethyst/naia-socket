@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{MessageHeader, Config, StringUtils};
+use gaia_socket_shared::{MessageHeader, Config, StringUtils, ConnectionManager};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
@@ -15,6 +15,8 @@ pub struct WebrtcClientSocket {
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
     connected: bool,
     timeout: u16,
+    connection_manager: Rc<RefCell<ConnectionManager>>,
+    message_sender: MessageSender,
 }
 
 impl WebrtcClientSocket {
@@ -23,6 +25,8 @@ impl WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
 
         let data_channel = webrtc_initialize(server_address, message_queue.clone());
+        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(config.unwrap().heartbeat_interval)));
+        let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone());
 
         WebrtcClientSocket {
             address: server_address.parse().unwrap(),
@@ -30,6 +34,8 @@ impl WebrtcClientSocket {
             message_queue,
             connected: false,
             timeout: 0,
+            connection_manager,
+            message_sender,
         }
     }
 
@@ -41,8 +47,11 @@ impl WebrtcClientSocket {
             } else {
                 self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::ClientHandshake as u8]).unwrap());
                 self.timeout = 100;
-                return Ok(SocketEvent::None);
             }
+        }
+
+        if self.connection_manager.borrow().should_send_heartbeat() {
+            self.message_sender.send(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap().to_string());
         }
 
         loop {
@@ -75,7 +84,7 @@ impl WebrtcClientSocket {
     }
 
     pub fn get_sender(&mut self) -> MessageSender {
-        return MessageSender::new(self.data_channel.clone());
+        return self.message_sender.clone();
     }
 
     pub fn server_address(&self) -> SocketAddr {
