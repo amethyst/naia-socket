@@ -1,5 +1,6 @@
 
 extern crate log;
+use log::info;
 
 use std::{
     net::{SocketAddr, UdpSocket},
@@ -100,6 +101,9 @@ impl UdpClientSocket {
                         MessageHeader::Data => {
                             let msg = String::from_utf8_lossy(payload).to_string().trim_front(1);
                             return Ok(SocketEvent::Message(msg));
+                        }
+                        MessageHeader::Heartbeat => {
+                            info!("Heartbeat");
                         }
                         _ => {}
                     }
