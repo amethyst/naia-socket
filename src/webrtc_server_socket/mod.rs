@@ -25,7 +25,7 @@ use crate::error::GaiaServerSocketError;
 use gaia_socket_shared::{MessageHeader, Config, StringUtils, ConnectionManager};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
-const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(2);
+const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(1);
 
 pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<ClientMessage>,
