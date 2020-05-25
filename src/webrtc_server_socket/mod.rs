@@ -25,7 +25,7 @@ use crate::error::GaiaServerSocketError;
 use gaia_socket_shared::{MessageHeader, Config, StringUtils, ConnectionManager};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
-const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(1);
+const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(2);
 
 pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<ClientMessage>,
@@ -273,6 +273,10 @@ impl WebrtcServerSocket {
 
     pub fn get_sender(&mut self) -> MessageSender {
         return MessageSender::new(self.to_client_sender.clone());
+    }
+
+    pub fn get_clients(&mut self) -> Vec<SocketAddr> {
+        self.clients.keys().cloned().collect()
     }
 }
 

@@ -9,6 +9,9 @@ use std::{
 };
 use log::info;
 
+mod timer;
+use timer::Timer;
+
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use gaia_socket_shared::{MessageHeader, Config, StringUtils, DEFAULT_MTU, ConnectionManager};
@@ -18,7 +21,8 @@ pub struct UdpServerSocket {
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
     message_sender: MessageSender,
-    heartbeat_timer: ConnectionManager,
+    heartbeat_timer: Timer,
+    tick_timer: Timer,
     clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>,
     heartbeat_interval: Duration,
     timeout_duration: Duration,
@@ -35,7 +39,8 @@ impl UdpServerSocket {
         let some_config = config.unwrap();
         let timeout_duration = some_config.idle_connection_timeout;
         let heartbeat_interval = some_config.heartbeat_interval / 2;
-        let heartbeat_timer = ConnectionManager::new(heartbeat_interval, timeout_duration);
+        let heartbeat_timer = Timer::new(heartbeat_interval);
+        let tick_timer = Timer::new(Duration::from_secs(2));
         let clients_map = Rc::new(RefCell::new(HashMap::new()));
         let message_sender = MessageSender::new(socket.clone(), clients_map.clone());
 
@@ -44,6 +49,7 @@ impl UdpServerSocket {
             receive_buffer: vec![0; DEFAULT_MTU as usize], //should be input from config
             message_sender,
             heartbeat_timer,
+            tick_timer,
             clients: clients_map,
             heartbeat_interval,
             timeout_duration,
@@ -56,8 +62,8 @@ impl UdpServerSocket {
         while output.is_none() {
 
             // heartbeats
-            if self.heartbeat_timer.should_send_heartbeat() {
-                self.heartbeat_timer.mark_sent();
+            if self.heartbeat_timer.ringing() {
+                self.heartbeat_timer.reset();
 
                 for (address, connection) in self.clients.borrow_mut().iter_mut() {
                     if connection.should_drop() {
@@ -82,7 +88,10 @@ impl UdpServerSocket {
                 output = Some(Ok(SocketEvent::Disconnection(addr)));
             }
 
-            /// Check for Tick ///
+            if self.tick_timer.ringing() {
+                self.tick_timer.reset();
+                output = Some(Ok(SocketEvent::Tick));
+            }
 
             let buffer: &mut [u8] = self.receive_buffer.as_mut();
             match self.socket
@@ -141,5 +150,9 @@ impl UdpServerSocket {
 
     pub fn get_sender(&mut self) -> MessageSender {
         return self.message_sender.clone();
+    }
+
+    pub fn get_clients(&mut self) -> Vec<SocketAddr> {
+        self.clients.borrow().keys().cloned().collect()
     }
 }
