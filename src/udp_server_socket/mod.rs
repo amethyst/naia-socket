@@ -82,6 +82,8 @@ impl UdpServerSocket {
                 output = Some(Ok(SocketEvent::Disconnection(addr)));
             }
 
+            /// Check for Tick ///
+
             let buffer: &mut [u8] = self.receive_buffer.as_mut();
             match self.socket
                 .borrow()
@@ -133,7 +135,6 @@ impl UdpServerSocket {
                     output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(err))));
                 }
             }
-
         }
         return output.unwrap();
     }
