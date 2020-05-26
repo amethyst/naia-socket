@@ -37,7 +37,6 @@ cfg_if! {
 
                 if connection.is_connectionless() {
                     if let Err(err) = self.data_channel.send_with_u8_array(&packet.payload()) {
-                        warn!("send message failure!");
                         let mut dropped_outgoing_messages = self.dropped_outgoing_messages.borrow_mut();
                         dropped_outgoing_messages.push_back(packet);
                     }
@@ -57,7 +56,6 @@ cfg_if! {
                             Ok(())
                         }
                         Err(err) => {
-                            warn!("send message failure!");
                             let mut dropped_outgoing_messages = self.dropped_outgoing_messages.borrow_mut();
                             dropped_outgoing_messages.push_back(packet);
                             Ok(())
