@@ -4,7 +4,7 @@ extern crate log;
 
 use simple_logger;
 
-use gaia_server_socket::{ServerSocket, SocketEvent, Config, find_my_ip_address};
+use gaia_server_socket::{ServerSocket, SocketEvent, Config, Packet, find_my_ip_address};
 
 const SERVER_PORT: &str = "3179";
 const PING_MSG: &str = "ping";
@@ -31,13 +31,16 @@ async fn main() {
                     SocketEvent::Disconnection(address) => {
                         info!("Server disconnected from: {:?}", address);
                     }
-                    SocketEvent::Message(address, message) => {
+                    SocketEvent::Packet(packet) => {
+
+                        let address = packet.address();
+                        let message = String::from_utf8_lossy(packet.payload());
                         info!("Server recv <- {}: {}", address, message);
 
                         if message.eq(PING_MSG) {
                             let to_client_message: String = PONG_MSG.to_string();
                             info!("Server send -> {}: {}", address, to_client_message);
-                            sender.send((address, to_client_message))
+                            sender.send(Packet::new(address, to_client_message.into_bytes()))
                                 .await.expect("send error");
                         }
                     }
