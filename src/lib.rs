@@ -16,3 +16,6 @@ pub use utils::{StringUtils};
 
 mod connection_manager;
 pub use connection_manager::ConnectionManager;
+
+mod timer;
+pub use timer::Timer;

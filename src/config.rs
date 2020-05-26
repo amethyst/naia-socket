@@ -1,23 +1,27 @@
 use std::{default::Default, time::Duration};
 
-use crate::constants::{DEFAULT_MTU};
-
 #[derive(Clone, Debug)]
 
 pub struct Config {
-    pub idle_connection_timeout: Duration,
+    pub tick_interval: Duration,
+    pub connection_events_enabled: bool,
+    pub send_handshake_interval: Duration,
+    pub disconnection_events_enabled: bool,
+    pub disconnection_timeout_duration: Duration,
+    pub heartbeats_enabled: bool,
     pub heartbeat_interval: Duration,
-    pub receive_buffer_max_size: usize,
-    pub socket_event_buffer_size: usize,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            idle_connection_timeout: Duration::from_secs(10),
+            tick_interval: Duration::from_secs(1),
+            connection_events_enabled: true,
+            disconnection_events_enabled: true,
+            disconnection_timeout_duration: Duration::from_secs(10),
+            heartbeats_enabled: true,
             heartbeat_interval: Duration::from_secs(4),
-            receive_buffer_max_size: DEFAULT_MTU as usize,
-            socket_event_buffer_size: 1024,
+            send_handshake_interval: Duration::from_secs(1),
         }
     }
 }
