@@ -24,7 +24,6 @@ cfg_if! {
             }
 
             pub fn ringing(&self) -> bool {
-                Instant::now().duration_since(self.last) > self.duration
                 (Date::now() - self.last) > self.duration
             }
         }

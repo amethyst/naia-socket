@@ -2,6 +2,8 @@ extern crate log;
 
 use std::time::Duration;
 
+use crate::Timer;
+
 pub struct ConnectionManager {
     heartbeat_timer: Timer,
     timeout_timer: Timer,
