@@ -1,9 +1,9 @@
 
 use std::error::Error;
 
-use gaia_socket_shared::{MessageHeader, StringUtils};
+use gaia_socket_shared::{MessageHeader};
 
-pub use super::client_message::ClientMessage;
+use crate::Packet;
 
 cfg_if! {
     if #[cfg(feature = "use-webrtc")] {
@@ -54,11 +54,20 @@ cfg_if! {
                     clients,
                 }
             }
-            pub async fn send(&mut self, message: ClientMessage) -> Result<(), Box<dyn Error + Send>> {
-                let (address, message) = message;
+            pub async fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
+                let address = packet.address();
+
+                //add header to packet
+                let mut header: Vec<u8> = Vec::new();
+                header.push(MessageHeader::Data as u8);
+                let outgoing_packet = [header.as_slice(), &packet.payload()]
+                    .concat()
+                    .into_boxed_slice();
+
+                //send it
                 match self.socket
                     .borrow()
-                    .send_to(message.push_front(MessageHeader::Data as u8).as_bytes(), address)
+                    .send_to(&outgoing_packet, address)
                 {
                     Ok(_) => {
                         match self.clients.borrow_mut().get_mut(&address) {

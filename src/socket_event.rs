@@ -1,8 +1,9 @@
 use std::net::SocketAddr;
+use crate::Packet;
 
 pub enum SocketEvent {
     Connection(SocketAddr),
     Disconnection(SocketAddr),
-    Message(SocketAddr, String),
+    Packet(Packet),
     Tick,
 }

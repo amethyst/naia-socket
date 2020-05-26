@@ -11,11 +11,12 @@ mod webrtc_server_socket;
 
 mod error;
 mod socket_event;
-mod client_message;
 mod message_sender;
 mod server_socket;
+mod packet;
 
 pub use server_socket::ServerSocket;
 pub use socket_event::SocketEvent;
 pub use message_sender::MessageSender;
 pub use gaia_socket_shared::{Config, find_my_ip_address};
+pub use packet::Packet;

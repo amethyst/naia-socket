@@ -14,8 +14,9 @@ use timer::Timer;
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{MessageHeader, Config, StringUtils, DEFAULT_MTU, ConnectionManager};
+use gaia_socket_shared::{MessageHeader, Config, DEFAULT_MTU, ConnectionManager};
 use crate::error::GaiaServerSocketError;
+use crate::Packet;
 
 pub struct UdpServerSocket {
     socket: Rc<RefCell<UdpSocket>>,
@@ -128,8 +129,9 @@ impl UdpServerSocket {
                             }
                         }
                         MessageHeader::Data => {
-                            let message = String::from_utf8_lossy(payload).to_string();
-                            output = Some(Ok(SocketEvent::Message(address, message.trim_front(1))));
+                            let boxed = payload[1..].to_vec().into_boxed_slice();
+                            let packet = Packet::new_raw(address, boxed);
+                            output = Some(Ok(SocketEvent::Packet(packet)));
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
