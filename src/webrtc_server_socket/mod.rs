@@ -5,7 +5,7 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Error as HyperError, Method, Response, Server, StatusCode,
 };
-use log::info;
+use log::{info, warn};
 use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
     io::{Error as IoError},
@@ -122,18 +122,17 @@ impl WebrtcServerSocket {
             HeartbeatTimer,
         }
 
-        if let Some(addr) = self.outstanding_disconnects.pop_front() {
-            self.clients.remove(&addr);
-            return Ok(SocketEvent::Disconnection(addr));
+        if !self.config.connectionless {
+            if let Some(addr) = self.outstanding_disconnects.pop_front() {
+                self.clients.remove(&addr);
+                return Ok(SocketEvent::Disconnection(addr));
+            }
         }
 
         loop {
             let next = {
                 let timer_next = self.tick_timer.tick().fuse();
                 pin_mut!(timer_next);
-
-                let heartbeater_next = self.heartbeat_timer.tick().fuse();
-                pin_mut!(heartbeater_next);
 
                 let to_client_receiver_next = self.to_client_receiver.next().fuse();
                 pin_mut!(to_client_receiver_next);
@@ -142,27 +141,53 @@ impl WebrtcServerSocket {
                 let from_client_message_receiver_next = rtc_server.recv().fuse();
                 pin_mut!(from_client_message_receiver_next);
 
-                select! {
-                    from_client_result = from_client_message_receiver_next => {
-                        Next::FromClientMessage(
-                            match from_client_result {
-                                Ok(msg) => {
-                                    Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
+                if !self.config.connectionless {
+                    let heartbeater_next = self.heartbeat_timer.tick().fuse();
+                    pin_mut!(heartbeater_next);
+
+                    select! {
+                        from_client_result = from_client_message_receiver_next => {
+                            Next::FromClientMessage(
+                                match from_client_result {
+                                    Ok(msg) => {
+                                        Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
+                                    }
+                                    Err(err) => { Err(err) }
                                 }
-                                Err(err) => { Err(err) }
-                            }
-                        )
+                            )
+                        }
+                        to_client_message = to_client_receiver_next => {
+                            Next::ToClientMessage(
+                                to_client_message.expect("to server message receiver closed")
+                            )
+                        }
+                        _ = timer_next => {
+                            Next::PeriodicTimer
+                        }
+                        _ = heartbeater_next => {
+                            Next::HeartbeatTimer
+                        }
                     }
-                    to_client_message = to_client_receiver_next => {
-                        Next::ToClientMessage(
-                            to_client_message.expect("to server message receiver closed")
-                        )
-                    }
-                    _ = timer_next => {
-                        Next::PeriodicTimer
-                    }
-                    _ = heartbeater_next => {
-                        Next::HeartbeatTimer
+                } else {
+                    select! {
+                        from_client_result = from_client_message_receiver_next => {
+                            Next::FromClientMessage(
+                                match from_client_result {
+                                    Ok(msg) => {
+                                        Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
+                                    }
+                                    Err(err) => { Err(err) }
+                                }
+                            )
+                        }
+                        to_client_message = to_client_receiver_next => {
+                            Next::ToClientMessage(
+                                to_client_message.expect("to server message receiver closed")
+                            )
+                        }
+                        _ = timer_next => {
+                            Next::PeriodicTimer
+                        }
                     }
                 }
             };
@@ -174,56 +199,68 @@ impl WebrtcServerSocket {
 
                             let address = packet.address();
 
-                            match self.clients.get_mut(&address) {
-                                Some(connection) => {
-                                    connection.mark_heard();
+                            if self.config.connectionless {
+                                if !self.clients.contains_key(&address) {
+                                    self.clients.insert(address, ConnectionManager::connectionless());
                                 }
-                                None => {
-                                    //not yet established connection
-                                }
-                            }
+                                return Ok(SocketEvent::Packet(packet));
+                            } else {
 
-                            let payload = packet.payload();
-                            let header: MessageHeader = payload[0].into();
-                            match header {
-                                MessageHeader::ClientHandshake => {
-                                    // Server Handshake
-                                    match self.rtc_server.send(
-                                        &[MessageHeader::ServerHandshake as u8],
-                                        MessageType::Binary,
-                                        &address)
-                                        .await
-                                    {
-                                        Ok(_) => {
-                                            match self.clients.get_mut(&address) {
-                                                Some(connection) => {
-                                                    connection.mark_sent();
+                                match self.clients.get_mut(&address) {
+                                    Some(connection) => {
+                                        connection.mark_heard();
+                                    }
+                                    None => {
+                                        //not yet established connection
+                                    }
+                                }
+
+                                let payload = packet.payload();
+                                let header: MessageHeader = payload[0].into();
+                                match header {
+                                    MessageHeader::ClientHandshake => {
+                                        // Send Server Handshake
+                                        match self.rtc_server.send(
+                                            &[MessageHeader::ServerHandshake as u8],
+                                            MessageType::Binary,
+                                            &address)
+                                            .await
+                                            {
+                                                Ok(_) => {
+                                                    match self.clients.get_mut(&address) {
+                                                        Some(connection) => {
+                                                            connection.mark_sent();
+                                                        }
+                                                        None => {
+                                                            //sending to an unknown address??
+                                                        }
+                                                    }
                                                 }
-                                                None => {
-                                                    //sending to an unknown address??
+                                                Err(error) => {
+                                                    return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
                                                 }
                                             }
-                                        }
-                                        Err(error) => {
-                                            return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
-                                        }
-                                    }
 
-                                    if !self.clients.contains_key(&address) {
-                                        self.clients.insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
-                                        return Ok(SocketEvent::Connection(address));
+                                        if !self.clients.contains_key(&address) {
+                                            self.clients.insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
+                                            return Ok(SocketEvent::Connection(address));
+                                        }
                                     }
+                                    MessageHeader::Data => {
+                                        if self.clients.contains_key(&address) {
+                                            let boxed = payload[1..].to_vec().into_boxed_slice();
+                                            let packet = Packet::new_raw(address, boxed);
+                                            return Ok(SocketEvent::Packet(packet));
+                                        } else {
+                                            warn!("received data from unauthenticated client")
+                                        }
+                                    }
+                                    MessageHeader::Heartbeat => {
+                                        // Already registered heartbeat, no need for more
+                                        info!("Heartbeat");
+                                    }
+                                    _ => {}
                                 }
-                                MessageHeader::Data => {
-                                    let boxed = payload[1..].to_vec().into_boxed_slice();
-                                    let packet = Packet::new_raw(address, boxed);
-                                    return Ok(SocketEvent::Packet(packet)); // trimming gets rid of the header
-                                }
-                                MessageHeader::Heartbeat => {
-                                    // Already registered heartbeat, no need for more
-                                    info!("Heartbeat");
-                                }
-                                _ => {}
                             }
                         }
                         Err(err) => {
@@ -241,12 +278,14 @@ impl WebrtcServerSocket {
                         .await
                     {
                         Ok(_) => {
-                            match self.clients.get_mut(&address) {
-                                Some(connection) => {
-                                    connection.mark_sent();
-                                }
-                                None => {
-                                    //sending to an unknown address??
+                            if !self.config.connectionless {
+                                match self.clients.get_mut(&address) {
+                                    Some(connection) => {
+                                        connection.mark_sent();
+                                    }
+                                    None => {
+                                        //sending to an unknown address??
+                                    }
                                 }
                             }
                         }
@@ -291,7 +330,7 @@ impl WebrtcServerSocket {
     }
 
     pub fn get_sender(&mut self) -> MessageSender {
-        return MessageSender::new(self.to_client_sender.clone());
+        return MessageSender::new(self.to_client_sender.clone(), self.config.connectionless);
     }
 
     pub fn get_clients(&mut self) -> Vec<SocketAddr> {

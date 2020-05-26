@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
     io::ErrorKind,
 };
-use log::info;
+use log::{info, warn};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
@@ -58,31 +58,33 @@ impl UdpServerSocket {
         while output.is_none() {
 
             // heartbeats
-            if self.heartbeat_timer.ringing() {
-                self.heartbeat_timer.reset();
+            if !self.config.connectionless {
+                if self.heartbeat_timer.ringing() {
+                    self.heartbeat_timer.reset();
 
-                for (address, connection) in self.clients.borrow_mut().iter_mut() {
-                    if connection.should_drop() {
-                        self.outstanding_disconnects.push_back(*address);
+                    for (address, connection) in self.clients.borrow_mut().iter_mut() {
+                        if connection.should_drop() {
+                            self.outstanding_disconnects.push_back(*address);
+                        } else if connection.should_send_heartbeat() {
+                            match self.socket
+                                .borrow()
+                                .send_to(&[MessageHeader::Heartbeat as u8], address)
+                                {
+                                    Ok(_) => {
+                                        connection.mark_sent();
+                                    },
+                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                }
+                        }
                     }
-                    else if connection.should_send_heartbeat() {
-                        match self.socket
-                            .borrow()
-                            .send_to(&[MessageHeader::Heartbeat as u8], address)
-                            {
-                                Ok(_) => {
-                                    connection.mark_sent();
-                                },
-                                Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
-                            }
-                    }
+                }
+
+                if let Some(addr) = self.outstanding_disconnects.pop_front() {
+                    self.clients.borrow_mut().remove(&addr);
+                    output = Some(Ok(SocketEvent::Disconnection(addr)));
                 }
             }
 
-            if let Some(addr) = self.outstanding_disconnects.pop_front() {
-                self.clients.borrow_mut().remove(&addr);
-                output = Some(Ok(SocketEvent::Disconnection(addr)));
-            }
 
             if self.tick_timer.ringing() {
                 self.tick_timer.reset();
@@ -96,43 +98,54 @@ impl UdpServerSocket {
                 .map(move |(recv_len, address)| (&buffer[..recv_len], address))
             {
                 Ok((payload, address)) => {
-
-                    match self.clients.borrow_mut().get_mut(&address) {
-                        Some(connection) => {
-                            connection.mark_heard();
+                    if self.config.connectionless {
+                        if !self.clients.borrow().contains_key(&address) {
+                            self.clients.borrow_mut().insert(address, ConnectionManager::connectionless());
                         }
-                        None => {
-                            //not yet established connection
-                        }
-                    }
-
-                    let header: MessageHeader = payload[0].into();
-                    match header {
-                        MessageHeader::ClientHandshake => {
-                            // Server Handshake
-                            match self.socket
-                                .borrow()
-                                .send_to(&[MessageHeader::ServerHandshake as u8], address)
-                                {
-                                    Ok(_) => {},
-                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
-                                }
-
-                            if !self.clients.borrow().contains_key(&address) {
-                                self.clients.borrow_mut().insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
-                                output = Some(Ok(SocketEvent::Connection(address)));
+                        let packet = Packet::new(address, payload.to_vec());
+                        output = Some(Ok(SocketEvent::Packet(packet)));
+                    } else {
+                        match self.clients.borrow_mut().get_mut(&address) {
+                            Some(connection) => {
+                                connection.mark_heard();
+                            }
+                            None => {
+                                //not yet established connection
                             }
                         }
-                        MessageHeader::Data => {
-                            let boxed = payload[1..].to_vec().into_boxed_slice();
-                            let packet = Packet::new_raw(address, boxed);
-                            output = Some(Ok(SocketEvent::Packet(packet)));
+
+                        let header: MessageHeader = payload[0].into();
+                        match header {
+                            MessageHeader::ClientHandshake => {
+                                // Send Server Handshake
+                                match self.socket
+                                    .borrow()
+                                    .send_to(&[MessageHeader::ServerHandshake as u8], address)
+                                    {
+                                        Ok(_) => {},
+                                        Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                    }
+
+                                if !self.clients.borrow().contains_key(&address) {
+                                    self.clients.borrow_mut().insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
+                                    output = Some(Ok(SocketEvent::Connection(address)));
+                                }
+                            }
+                            MessageHeader::Data => {
+                                if self.clients.borrow().contains_key(&address) {
+                                    let boxed = payload[1..].to_vec().into_boxed_slice();
+                                    let packet = Packet::new_raw(address, boxed);
+                                    output = Some(Ok(SocketEvent::Packet(packet)));
+                                } else {
+                                    warn!("received data from unauthenticated client: {}", address);
+                                }
+                            }
+                            MessageHeader::Heartbeat => {
+                                // Already registered heartbeat, no need for more
+                                info!("Heartbeat");
+                            }
+                            _ => {}
                         }
-                        MessageHeader::Heartbeat => {
-                            // Already registered heartbeat, no need for more
-                            info!("Heartbeat");
-                        }
-                        _ => {}
                     }
                 }
                 Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
