@@ -44,12 +44,12 @@ impl App {
                         let message = String::from_utf8_lossy(packet.payload());
                         info!("Client recv: {}", message);
 
-                        if message.eq(&PONG_MSG.to_string()) && self.message_count < 10 {
+                        if message.eq(PONG_MSG) && self.message_count < 10 {
                             self.message_count += 1;
                             let to_server_message: String = PING_MSG.to_string();
                             info!("Client send: {}", to_server_message);
                             self.message_sender.send(Packet::new(
-                                to_server_message.clone().into_bytes(),
+                                to_server_message.into_bytes(),
                             ))
                                 .expect("send error");
                         }
