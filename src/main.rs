@@ -17,7 +17,10 @@ async fn main() {
 
     let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
-    let mut server_socket = ServerSocket::listen(current_socket_address.as_str(), Some(Config::default())).await;
+    let mut config = Config::default();
+    config.connectionless = true;
+
+    let mut server_socket = ServerSocket::listen(current_socket_address.as_str(), Some(config)).await;
 
     let mut sender = server_socket.get_sender();
 
@@ -46,6 +49,7 @@ async fn main() {
                     }
                     SocketEvent::Tick => {
                         // This could be used for your non-network logic (game loop?)
+                        //info!("Server Tick");
                     }
                 }
             }
