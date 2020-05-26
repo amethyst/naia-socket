@@ -14,8 +14,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            idle_connection_timeout: Duration::from_secs(5),
-            heartbeat_interval: Duration::from_secs(2),
+            idle_connection_timeout: Duration::from_secs(10),
+            heartbeat_interval: Duration::from_secs(4),
             receive_buffer_max_size: DEFAULT_MTU as usize,
             socket_event_buffer_size: 1024,
         }
