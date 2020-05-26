@@ -8,12 +8,9 @@ use std::{
 };
 use log::info;
 
-mod timer;
-use timer::Timer;
-
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{MessageHeader, Config, DEFAULT_MTU, ConnectionManager};
+use gaia_socket_shared::{MessageHeader, Config, DEFAULT_MTU, ConnectionManager, Timer};
 use crate::error::GaiaServerSocketError;
 use crate::Packet;
 

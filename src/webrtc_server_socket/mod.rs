@@ -8,7 +8,6 @@ use hyper::{
 use log::info;
 use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
-    time::Duration,
     io::{Error as IoError},
     collections::{VecDeque, HashMap},
 };
