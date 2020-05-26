@@ -18,8 +18,10 @@ mod error;
 mod socket_event;
 mod message_sender;
 mod client_socket;
+mod packet;
 
 pub use client_socket::ClientSocket;
 pub use socket_event::SocketEvent;
 pub use message_sender::MessageSender;
 pub use gaia_socket_shared::{Config, find_my_ip_address};
+pub use packet::Packet;

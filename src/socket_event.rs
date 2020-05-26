@@ -1,7 +1,9 @@
 
+use crate::Packet;
+
 pub enum SocketEvent {
     Connection,
     Disconnection,
-    Message(String),
+    Packet(Packet),
     None,
 }

@@ -5,7 +5,7 @@ use std::{
     cell::RefCell
 };
 
-use gaia_socket_shared::{MessageHeader, StringUtils, ConnectionManager};
+use gaia_socket_shared::{MessageHeader, ConnectionManager};
 
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
@@ -36,6 +36,8 @@ cfg_if! {
             net::{SocketAddr, UdpSocket},
         };
 
+        use crate::Packet;
+
         #[derive(Clone)]
         pub struct MessageSender {
             address: SocketAddr,
@@ -51,10 +53,19 @@ cfg_if! {
                     connection_manager,
                 }
             }
-            pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
+            pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
+
+                //add header to packet
+                let mut header: Vec<u8> = Vec::new();
+                header.push(MessageHeader::Data as u8);
+                let outgoing_packet = [header.as_slice(), &packet.payload()]
+                    .concat()
+                    .into_boxed_slice();
+
+                //send it
                 match self.socket
                     .borrow()
-                    .send_to(message.push_front(MessageHeader::Data as u8).as_bytes(), self.address)
+                    .send_to(&outgoing_packet, self.address)
                 {
                     Ok(_) => {
                         self.connection_manager.borrow_mut().mark_sent();

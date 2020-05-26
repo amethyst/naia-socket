@@ -12,7 +12,8 @@ use std::{
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, StringUtils, ConnectionManager, DEFAULT_MTU};
+use crate::Packet;
+use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, ConnectionManager, DEFAULT_MTU};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -110,8 +111,9 @@ impl UdpClientSocket {
                             }
                         }
                         MessageHeader::Data => {
-                            let msg = String::from_utf8_lossy(payload).to_string().trim_front(1);
-                            return Ok(SocketEvent::Message(msg));
+                            let boxed = payload[1..].to_vec().into_boxed_slice();
+                            let packet = Packet::new_raw(boxed);
+                            return Ok(SocketEvent::Packet(packet));
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
