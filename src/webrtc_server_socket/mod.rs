@@ -19,17 +19,17 @@ use futures_util::{pin_mut, select, FutureExt, StreamExt};
 use tokio::time::{self, Interval};
 
 use super::socket_event::SocketEvent;
-use super::client_message::ClientMessage;
 use super::message_sender::MessageSender;
 use crate::error::GaiaServerSocketError;
-use gaia_socket_shared::{MessageHeader, Config, StringUtils, ConnectionManager};
+use crate::Packet;
+use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(1);
 
 pub struct WebrtcServerSocket {
-    to_client_sender: mpsc::Sender<ClientMessage>,
-    to_client_receiver: mpsc::Receiver<ClientMessage>,
+    to_client_sender: mpsc::Sender<Packet>,
+    to_client_receiver: mpsc::Receiver<Packet>,
     periodic_timer: Interval,
     heartbeat_timer: Interval,
     heartbeat_interval: Duration,
@@ -118,8 +118,8 @@ impl WebrtcServerSocket {
     pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
 
         enum Next {
-            FromClientMessage(Result<(SocketAddr, String), IoError>),
-            ToClientMessage(ClientMessage),
+            FromClientMessage(Result<Packet, IoError>),
+            ToClientMessage(Packet),
             PeriodicTimer,
             HeartbeatTimer,
         }
@@ -149,7 +149,7 @@ impl WebrtcServerSocket {
                         Next::FromClientMessage(
                             match from_client_result {
                                 Ok(msg) => {
-                                    Ok((msg.remote_addr, String::from_utf8_lossy(msg.message.as_ref()).to_string()))
+                                    Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
                                 }
                                 Err(err) => { Err(err) }
                             }
@@ -172,7 +172,9 @@ impl WebrtcServerSocket {
             match next {
                 Next::FromClientMessage(from_client_message) => {
                     match from_client_message {
-                        Ok((address, message)) => {
+                        Ok(packet) => {
+
+                            let address = packet.address();
 
                             match self.clients.get_mut(&address) {
                                 Some(connection) => {
@@ -183,16 +185,30 @@ impl WebrtcServerSocket {
                                 }
                             }
 
-                            let header: MessageHeader = message.peek_front().into();
+                            let payload = packet.payload();
+                            let header: MessageHeader = payload[0].into();
                             match header {
                                 MessageHeader::ClientHandshake => {
                                     // Server Handshake
-                                    if let Err(error) = self.rtc_server.send(
+                                    match self.rtc_server.send(
                                         &[MessageHeader::ServerHandshake as u8],
-                                        MessageType::Text,
+                                        MessageType::Binary,
                                         &address)
-                                        .await {
-                                        return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
+                                        .await
+                                    {
+                                        Ok(_) => {
+                                            match self.clients.get_mut(&address) {
+                                                Some(connection) => {
+                                                    connection.mark_sent();
+                                                }
+                                                None => {
+                                                    //sending to an unknown address??
+                                                }
+                                            }
+                                        }
+                                        Err(error) => {
+                                            return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
+                                        }
                                     }
 
                                     if !self.clients.contains_key(&address) {
@@ -201,7 +217,9 @@ impl WebrtcServerSocket {
                                     }
                                 }
                                 MessageHeader::Data => {
-                                    return Ok(SocketEvent::Message(address, message.trim_front(1))); // trimming gets rid of the header
+                                    let boxed = payload[1..].to_vec().into_boxed_slice();
+                                    let packet = Packet::new_raw(address, boxed);
+                                    return Ok(SocketEvent::Packet(packet)); // trimming gets rid of the header
                                 }
                                 MessageHeader::Heartbeat => {
                                     // Already registered heartbeat, no need for more
@@ -214,10 +232,12 @@ impl WebrtcServerSocket {
                         }
                     }
                 }
-                Next::ToClientMessage((address, message)) => {
+                Next::ToClientMessage(packet) => {
+                    let address = packet.address();
+
                     match self.rtc_server.send(
-                        message.into_bytes().as_slice(),
-                        MessageType::Text,
+                        packet.payload(),
+                        MessageType::Binary,
                         &address)
                         .await
                     {
@@ -248,7 +268,7 @@ impl WebrtcServerSocket {
                         else if connection.should_send_heartbeat() {
                             match self.rtc_server.send(
                                 &[MessageHeader::Heartbeat as u8],
-                                MessageType::Text,
+                                MessageType::Binary,
                                 &address)
                                 .await
                                 {

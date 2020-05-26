@@ -12,19 +12,28 @@ cfg_if! {
         use futures_util::SinkExt;
 
         pub struct MessageSender {
-            internal: futures_channel::mpsc::Sender<ClientMessage>,
+            internal: futures_channel::mpsc::Sender<Packet>,
         }
 
         impl MessageSender {
-            pub fn new(sender: futures_channel::mpsc::Sender<ClientMessage>) -> MessageSender {
+            pub fn new(sender: futures_channel::mpsc::Sender<Packet>) -> MessageSender {
                 MessageSender {
                     internal: sender
                 }
             }
-            pub async fn send(&mut self, message: ClientMessage) -> Result<(), Box<dyn Error + Send>> {
-                let (address, msg_str) = message;
-                let new_message = (address, msg_str.push_front(MessageHeader::Data as u8));
-                match self.internal.send(new_message).await {
+            pub async fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
+
+                let address = packet.address();
+
+                //add header to packet
+                let mut header: Vec<u8> = Vec::new();
+                header.push(MessageHeader::Data as u8);
+                let new_payload = [header.as_slice(), &packet.payload()]
+                    .concat()
+                    .into_boxed_slice();
+
+                /////////
+                match self.internal.send(Packet::new_raw(address, new_payload)).await {
                     Ok(content) => { Ok(content) },
                     Err(error) => { return Err(Box::new(error)); }
                 }
