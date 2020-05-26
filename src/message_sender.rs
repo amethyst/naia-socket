@@ -11,6 +11,7 @@ use crate::Packet;
 
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
+        use std::collections::VecDeque;
         use web_sys::RtcDataChannel;
         use log::{info, warn};
 
@@ -18,13 +19,17 @@ cfg_if! {
         pub struct MessageSender {
             data_channel: RtcDataChannel,
             connection_manager: Rc<RefCell<ConnectionManager>>,
+            dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>
         }
 
         impl MessageSender {
-            pub fn new(data_channel: RtcDataChannel, connection_manager: Rc<RefCell<ConnectionManager>>) -> MessageSender {
+            pub fn new(data_channel: RtcDataChannel,
+                       connection_manager: Rc<RefCell<ConnectionManager>>,
+                       dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>) -> MessageSender {
                 MessageSender {
                     data_channel,
                     connection_manager,
+                    dropped_outgoing_messages
                 }
             }
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
@@ -33,6 +38,8 @@ cfg_if! {
                 if connection.is_connectionless() {
                     if let Err(err) = self.data_channel.send_with_u8_array(&packet.payload()) {
                         warn!("send message failure!");
+                        let mut dropped_outgoing_messages = self.dropped_outgoing_messages.borrow_mut();
+                        dropped_outgoing_messages.push_back(packet);
                     }
                     Ok(())
                 } else {
@@ -51,6 +58,8 @@ cfg_if! {
                         }
                         Err(err) => {
                             warn!("send message failure!");
+                            let mut dropped_outgoing_messages = self.dropped_outgoing_messages.borrow_mut();
+                            dropped_outgoing_messages.push_back(packet);
                             Ok(())
                         }
                     }

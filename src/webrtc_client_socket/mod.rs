@@ -24,7 +24,7 @@ pub struct WebrtcClientSocket {
     message_sender: MessageSender,
     config: Config,
     handshake_timer: Option<Timer>,
-    tick_timer: Timer,
+    dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>,
 }
 
 impl WebrtcClientSocket {
@@ -38,11 +38,12 @@ impl WebrtcClientSocket {
             None => Config::default(),
         };
 
+        let dropped_outgoing_messages = Rc::new(RefCell::new(VecDeque::new()));
         let connection_manager = match some_config.connectionless {
             false => Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration))),
             true => Rc::new(RefCell::new(ConnectionManager::connectionless())),
         };
-        let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone());
+        let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone(), dropped_outgoing_messages.clone());
 
         let mut handshake_timer = None;
         let mut connected= true;
@@ -51,9 +52,6 @@ impl WebrtcClientSocket {
             handshake_timer.as_mut().unwrap().ring_manual();
             connected = false;
         }
-
-        let mut tick_timer = Timer::new(Duration::from_secs(20));
-        //tick_timer.ring_manual();
 
         WebrtcClientSocket {
             address: server_address.parse().unwrap(),
@@ -64,7 +62,7 @@ impl WebrtcClientSocket {
             connection_manager,
             message_sender,
             config: some_config,
-            tick_timer
+            dropped_outgoing_messages,
         }
     }
 
@@ -88,9 +86,18 @@ impl WebrtcClientSocket {
             }
         }
 
-        if self.tick_timer.ringing() {
-            self.message_sender.send(Packet::new("ping".to_string().into_bytes()));
-            self.tick_timer.reset();
+        if !self.dropped_outgoing_messages.borrow().is_empty() {
+            let mut some_dropped_packets: Option<Vec<Packet>> = None;
+            {
+                let mut dom = self.dropped_outgoing_messages.borrow_mut();
+                let dropped_packets: Vec<Packet> = dom.drain(..).collect::<Vec<Packet>>();
+                some_dropped_packets = Some(dropped_packets);
+            }
+            if let Some(dropped_packets) = some_dropped_packets {
+                for dropped_packet in dropped_packets {
+                    self.message_sender.send(dropped_packet);
+                }
+            }
         }
 
         loop {
