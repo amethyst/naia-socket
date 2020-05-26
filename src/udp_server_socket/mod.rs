@@ -41,7 +41,7 @@ impl UdpServerSocket {
         let timeout_duration = some_config.idle_connection_timeout;
         let heartbeat_interval = some_config.heartbeat_interval / 2;
         let heartbeat_timer = Timer::new(heartbeat_interval);
-        let tick_timer = Timer::new(Duration::from_secs(3));
+        let tick_timer = Timer::new(some_config.tick_interval);
         let clients_map = Rc::new(RefCell::new(HashMap::new()));
         let message_sender = MessageSender::new(socket.clone(), clients_map.clone());
 

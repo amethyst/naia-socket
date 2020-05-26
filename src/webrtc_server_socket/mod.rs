@@ -25,12 +25,11 @@ use crate::Packet;
 use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
-const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(3);
 
 pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<Packet>,
     to_client_receiver: mpsc::Receiver<Packet>,
-    periodic_timer: Interval,
+    tick_timer: Interval,
     heartbeat_timer: Interval,
     heartbeat_interval: Duration,
     timeout_duration: Duration,
@@ -64,7 +63,7 @@ impl WebrtcServerSocket {
             to_client_sender,
             to_client_receiver,
             rtc_server,
-            periodic_timer: time::interval(PERIODIC_TIMER_DURATION),
+            tick_timer: time::interval(some_config.tick_interval),
             heartbeat_timer: time::interval(heartbeat_interval),
             heartbeat_interval,
             timeout_duration,
@@ -131,7 +130,7 @@ impl WebrtcServerSocket {
 
         loop {
             let next = {
-                let timer_next = self.periodic_timer.tick().fuse();
+                let timer_next = self.tick_timer.tick().fuse();
                 pin_mut!(timer_next);
 
                 let heartbeater_next = self.heartbeat_timer.tick().fuse();
