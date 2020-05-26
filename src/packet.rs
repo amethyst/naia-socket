@@ -11,7 +11,7 @@ impl Packet {
         }
     }
 
-    pub(crate) fn new_raw(payload: Box<[u8]>) -> Packet {
+    pub fn new_raw(payload: Box<[u8]>) -> Packet {
         Packet {
             payload
         }
