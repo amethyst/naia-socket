@@ -26,6 +26,10 @@ cfg_if! {
             pub fn ringing(&self) -> bool {
                 (Date::now() - self.last) > self.duration
             }
+
+            pub fn ring_manual(&mut self) {
+                self.last += self.duration;
+            }
         }
     }
     else {
@@ -51,6 +55,10 @@ cfg_if! {
 
             pub fn ringing(&self) -> bool {
                 Instant::now().duration_since(self.last) > self.duration
+            }
+
+            pub fn ring_manual(&mut self) {
+                self.last += self.duration;
             }
         }
     }
