@@ -28,7 +28,7 @@ cfg_if! {
             }
 
             pub fn ring_manual(&mut self) {
-                self.last += self.duration;
+                self.last -= self.duration;
             }
         }
     }
@@ -54,11 +54,11 @@ cfg_if! {
             }
 
             pub fn ringing(&self) -> bool {
-                Instant::now().duration_since(self.last) > self.duration
+                Instant::now().saturating_duration_since(self.last) > self.duration
             }
 
             pub fn ring_manual(&mut self) {
-                self.last += self.duration;
+                self.last -= self.duration;
             }
         }
     }
