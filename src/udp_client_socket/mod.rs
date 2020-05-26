@@ -22,15 +22,12 @@ pub struct UdpClientSocket {
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
     connection_manager: Rc<RefCell<ConnectionManager>>,
-    message_sender: MessageSender
+    message_sender: MessageSender,
+    config: Config,
 }
 
 impl UdpClientSocket {
-    pub fn connect(server_address: &str, mut config: Option<Config>) -> UdpClientSocket {
-
-        if config.is_none() {
-            config = Some(Config::default());
-        }
+    pub fn connect(server_address: &str, config: Option<Config>) -> UdpClientSocket {
 
         let client_ip_address = find_my_ip_address::get();
         let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
@@ -41,10 +38,12 @@ impl UdpClientSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(client_socket_address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 
-        let some_config = config.unwrap();
-        let heartbeat_interval = some_config.heartbeat_interval;
-        let timeout_duration = some_config.idle_connection_timeout;
-        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(heartbeat_interval, timeout_duration)));
+        let some_config = match config {
+            Some(config) => config,
+            None => Config::default(),
+        };
+
+        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration)));
         let message_sender = MessageSender::new(server_socket_address, socket.clone(), connection_manager.clone());
 
         UdpClientSocket {
@@ -54,7 +53,8 @@ impl UdpClientSocket {
             socket,
             receive_buffer: vec![0; DEFAULT_MTU as usize],
             connection_manager,
-            message_sender
+            message_sender,
+            config: some_config,
         }
     }
 
@@ -117,6 +117,7 @@ impl UdpClientSocket {
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
+                            info!("Heartbeat");
                         }
                         _ => {}
                     }

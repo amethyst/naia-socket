@@ -22,18 +22,21 @@ pub struct WebrtcClientSocket {
     timeout: u16,
     connection_manager: Rc<RefCell<ConnectionManager>>,
     message_sender: MessageSender,
+    config: Config,
 }
 
 impl WebrtcClientSocket {
 
     pub fn connect(server_address: &str, config: Option<Config>) -> WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
-
         let data_channel = webrtc_initialize(server_address, message_queue.clone());
-        let some_config = config.unwrap();
-        let heartbeat_interval = some_config.heartbeat_interval;
-        let timeout_duration = some_config.idle_connection_timeout;
-        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(heartbeat_interval, timeout_duration)));
+
+        let some_config = match config {
+            Some(config) => config,
+            None => Config::default(),
+        };
+
+        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration)));
         let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone());
 
         WebrtcClientSocket {
@@ -44,6 +47,7 @@ impl WebrtcClientSocket {
             timeout: 0,
             connection_manager,
             message_sender,
+            config: some_config,
         }
     }
 
@@ -95,6 +99,7 @@ impl WebrtcClientSocket {
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
+                            info!("Heartbeat");
                         }
                         _ => {}
                     }
