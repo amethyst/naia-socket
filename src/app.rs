@@ -16,15 +16,16 @@ impl App {
     pub fn new(server_socket_address: &str) -> App {
 
         let mut config = Config::default();
-        config.connectionless = true;
+        // Test a connectionless socket by uncommenting the below line
+        //        config.connectionless = true;
 
         let mut client_socket = ClientSocket::connect(&server_socket_address, Some(config));
         let mut message_sender = client_socket.get_sender();
 
-        message_sender.send(Packet::new(
-            PING_MSG.to_string().into_bytes(),
-        ))
-            .expect("send error");
+        // If your socket is connectionless, kick off the ping/ponging this way
+        //        message_sender.send(Packet::new(
+        //            PING_MSG.to_string().into_bytes(),
+        //        ));
 
         App {
             client_socket,
