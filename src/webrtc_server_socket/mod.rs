@@ -25,7 +25,7 @@ use crate::Packet;
 use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
-const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(7);
+const PERIODIC_TIMER_DURATION: Duration = Duration::from_secs(3);
 
 pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<Packet>,
