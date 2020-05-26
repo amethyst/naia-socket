@@ -7,6 +7,7 @@ use crate::Timer;
 pub struct ConnectionManager {
     heartbeat_timer: Option<Timer>,
     timeout_timer: Option<Timer>,
+    connectionless: bool,
 }
 
 impl ConnectionManager {
@@ -14,6 +15,7 @@ impl ConnectionManager {
         ConnectionManager {
             heartbeat_timer: Some(Timer::new(heartbeat_duration)),
             timeout_timer: Some(Timer::new(timeout_duration)),
+            connectionless: false,
         }
     }
 
@@ -21,22 +23,37 @@ impl ConnectionManager {
         ConnectionManager {
             heartbeat_timer: None,
             timeout_timer: None,
+            connectionless: true,
         }
     }
 
     pub fn mark_sent(&mut self) {
-        self.heartbeat_timer.as_mut().unwrap().reset();
+        if let Some(timer) = &mut self.heartbeat_timer {
+            timer.reset();
+        }
     }
 
     pub fn should_send_heartbeat(&self) -> bool {
-        self.heartbeat_timer.as_ref().unwrap().ringing()
+        if let Some(timer) = &self.heartbeat_timer {
+            return timer.ringing();
+        }
+        return false;
     }
 
     pub fn mark_heard(&mut self) {
-        self.timeout_timer.as_mut().unwrap().reset();
+        if let Some(timer) = &mut self.timeout_timer {
+            timer.reset();
+        }
     }
 
     pub fn should_drop(&self) -> bool {
-        self.timeout_timer.as_ref().unwrap().ringing()
+        if let Some(timer) = &self.timeout_timer {
+            return timer.ringing();
+        }
+        return false;
+    }
+
+    pub fn is_connectionless(&self) -> bool {
+        self.connectionless
     }
 }
