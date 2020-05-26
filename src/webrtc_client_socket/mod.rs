@@ -10,7 +10,9 @@ use std::collections::VecDeque;
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
-use gaia_socket_shared::{MessageHeader, Config, StringUtils, ConnectionManager};
+use crate::Packet;
+
+use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
@@ -73,11 +75,12 @@ impl WebrtcClientSocket {
             match self.message_queue.borrow_mut()
                 .pop_front()
                 .expect("message queue shouldn't be empty!") {
-                Ok(SocketEvent::Message(inner_msg)) => {
+                Ok(SocketEvent::Packet(packet)) => {
 
                     self.connection_manager.borrow_mut().mark_heard();
 
-                    let header: MessageHeader = inner_msg.peek_front().into();
+                    let payload = packet.payload();
+                    let header: MessageHeader = payload[0].into();
                     match header {
                         MessageHeader::ServerHandshake => {
                             if !self.connected {
@@ -86,7 +89,9 @@ impl WebrtcClientSocket {
                             }
                         }
                         MessageHeader::Data => {
-                            return Ok(SocketEvent::Message(inner_msg.trim_front(1)));
+                            let boxed = payload[1..].to_vec().into_boxed_slice();
+                            let packet = Packet::new_raw(boxed);
+                            return Ok(SocketEvent::Packet(packet));
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
@@ -172,15 +177,17 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
 
         let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
-            if let Ok(_) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
+            if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
                 //info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", _);
-            } else if let Ok(_) = evt.data().dyn_into::<web_sys::Blob>() {
-                //info!("UNIMPLEMENTED! message event, received blob: {:?}", _);
-            } else if let Ok(txt) = evt.data().dyn_into::<js_sys::JsString>() {
-                let msg = txt.as_string().expect("this should be a string");
+                let array = js_sys::Uint8Array::new(&abuf);
+                let len = array.byte_length() as usize;
                 msg_queue_clone_2
                     .borrow_mut()
-                    .push_back(Ok(SocketEvent::Message(msg)));
+                    .push_back(Ok(SocketEvent::Packet(Packet::new(array.to_vec()))));
+            } else if let Ok(_) = evt.data().dyn_into::<web_sys::Blob>() {
+                //info!("UNIMPLEMENTED! message event, received blob: {:?}", _);
+            } else if let Ok(_) = evt.data().dyn_into::<js_sys::JsString>() {
+                //info!("UNIMPLEMENTED! received string !(*!$)(&@
             } else {
                 //info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
             }

@@ -7,6 +7,8 @@ use std::{
 
 use gaia_socket_shared::{MessageHeader, ConnectionManager};
 
+use crate::Packet;
+
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use web_sys::RtcDataChannel;
@@ -24,8 +26,16 @@ cfg_if! {
                     connection_manager,
                 }
             }
-            pub fn send(&mut self, message: String) -> Result<(), Box<dyn Error + Send>> {
-                self.data_channel.send_with_str(&message.push_front(MessageHeader::Data as u8));
+            pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
+                //add header to packet
+                let mut header: Vec<u8> = Vec::new();
+                header.push(MessageHeader::Data as u8);
+                let outgoing_packet = [header.as_slice(), &packet.payload()]
+                    .concat()
+                    .into_boxed_slice();
+
+                //send it
+                self.data_channel.send_with_u8_array(&outgoing_packet);
                 self.connection_manager.borrow_mut().mark_sent();
                 Ok(())
             }
@@ -35,8 +45,6 @@ cfg_if! {
         use std::{
             net::{SocketAddr, UdpSocket},
         };
-
-        use crate::Packet;
 
         #[derive(Clone)]
         pub struct MessageSender {
