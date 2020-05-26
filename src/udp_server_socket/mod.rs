@@ -5,7 +5,6 @@ use std::{
     cell::RefCell,
     rc::Rc,
     io::ErrorKind,
-    time::Duration,
 };
 use log::info;
 
@@ -25,9 +24,8 @@ pub struct UdpServerSocket {
     heartbeat_timer: Timer,
     tick_timer: Timer,
     clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>,
-    heartbeat_interval: Duration,
-    timeout_duration: Duration,
     outstanding_disconnects: VecDeque<SocketAddr>,
+    config: Config,
 }
 
 impl UdpServerSocket {
@@ -37,11 +35,12 @@ impl UdpServerSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 
-        let some_config = config.unwrap();
-        let timeout_duration = some_config.idle_connection_timeout;
-        let heartbeat_interval = some_config.heartbeat_interval / 2;
-        let heartbeat_timer = Timer::new(heartbeat_interval);
-        let tick_timer = Timer::new(some_config.tick_interval);
+        let mut some_config = match config {
+            Some(config) => config,
+            None => Config::default(),
+        };
+        some_config.heartbeat_interval /= 2;
+
         let clients_map = Rc::new(RefCell::new(HashMap::new()));
         let message_sender = MessageSender::new(socket.clone(), clients_map.clone());
 
@@ -49,12 +48,11 @@ impl UdpServerSocket {
             socket,
             receive_buffer: vec![0; DEFAULT_MTU as usize], //should be input from config
             message_sender,
-            heartbeat_timer,
-            tick_timer,
+            heartbeat_timer: Timer::new(some_config.heartbeat_interval),
+            tick_timer: Timer::new(some_config.tick_interval),
             clients: clients_map,
-            heartbeat_interval,
-            timeout_duration,
-            outstanding_disconnects: VecDeque::new()
+            outstanding_disconnects: VecDeque::new(),
+            config: some_config,
         }
     }
 
@@ -124,7 +122,7 @@ impl UdpServerSocket {
                                 }
 
                             if !self.clients.borrow().contains_key(&address) {
-                                self.clients.borrow_mut().insert(address, ConnectionManager::new(self.heartbeat_interval, self.timeout_duration));
+                                self.clients.borrow_mut().insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
                                 output = Some(Ok(SocketEvent::Connection(address)));
                             }
                         }
@@ -135,6 +133,7 @@ impl UdpServerSocket {
                         }
                         MessageHeader::Heartbeat => {
                             // Already registered heartbeat, no need for more
+                            info!("Heartbeat");
                         }
                         _ => {}
                     }

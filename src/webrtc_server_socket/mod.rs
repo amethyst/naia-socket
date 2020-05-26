@@ -31,11 +31,10 @@ pub struct WebrtcServerSocket {
     to_client_receiver: mpsc::Receiver<Packet>,
     tick_timer: Interval,
     heartbeat_timer: Interval,
-    heartbeat_interval: Duration,
-    timeout_duration: Duration,
     rtc_server: RtcServer,
     clients: HashMap<SocketAddr, ConnectionManager>,
     outstanding_disconnects: VecDeque<SocketAddr>,
+    config: Config,
 }
 
 impl WebrtcServerSocket {
@@ -55,20 +54,21 @@ impl WebrtcServerSocket {
         let rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
 
-        let some_config = config.unwrap();
-        let heartbeat_interval = some_config.heartbeat_interval / 2;
-        let timeout_duration = some_config.idle_connection_timeout;
+        let mut some_config = match config {
+            Some(config) => config,
+            None => Config::default(),
+        };
+        some_config.heartbeat_interval /= 2;
 
         let socket = WebrtcServerSocket {
             to_client_sender,
             to_client_receiver,
             rtc_server,
             tick_timer: time::interval(some_config.tick_interval),
-            heartbeat_timer: time::interval(heartbeat_interval),
-            heartbeat_interval,
-            timeout_duration,
+            heartbeat_timer: time::interval(some_config.heartbeat_interval),
             clients: HashMap::new(),
-            outstanding_disconnects: VecDeque::new()
+            outstanding_disconnects: VecDeque::new(),
+            config: some_config
         };
 
         let session_endpoint = socket.rtc_server.session_endpoint();
@@ -211,7 +211,7 @@ impl WebrtcServerSocket {
                                     }
 
                                     if !self.clients.contains_key(&address) {
-                                        self.clients.insert(address, ConnectionManager::new(self.heartbeat_interval, self.timeout_duration));
+                                        self.clients.insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
                                         return Ok(SocketEvent::Connection(address));
                                     }
                                 }
@@ -222,6 +222,7 @@ impl WebrtcServerSocket {
                                 }
                                 MessageHeader::Heartbeat => {
                                     // Already registered heartbeat, no need for more
+                                    info!("Heartbeat");
                                 }
                                 _ => {}
                             }
