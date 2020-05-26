@@ -13,10 +13,19 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(server_socket_address: &str, config: Option<Config>) -> App {
+    pub fn new(server_socket_address: &str) -> App {
 
-        let mut client_socket = ClientSocket::connect(&server_socket_address, config);
-        let message_sender = client_socket.get_sender();
+        let mut config = Config::default();
+        config.connection_events_enabled = false;
+        config.disconnection_events_enabled = false;
+
+        let mut client_socket = ClientSocket::connect(&server_socket_address, Some(config));
+        let mut message_sender = client_socket.get_sender();
+
+        message_sender.send(Packet::new(
+            PING_MSG.to_string().into_bytes(),
+        ))
+            .expect("send error");
 
         App {
             client_socket,

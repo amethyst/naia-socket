@@ -16,11 +16,9 @@ fn main() {
 
     info!("Client Example Started");
 
-    let config = Config::default();
-
     let server_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
-    let mut app = App::new(&server_socket_address, Some(config));
+    let mut app = App::new(&server_socket_address);
 
     loop_native::start_loop(&mut app);
 }

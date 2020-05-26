@@ -24,11 +24,9 @@ cfg_if! {
 
             info!("Client Example Started");
 
-            let config = Config::default();
-
             let server_socket_address = SERVER_IP_ADDRESS.to_owned() + ":" + SERVER_PORT;
 
-            let app = App::new(&server_socket_address, Some(config));
+            let app = App::new(&server_socket_address);
 
             loop_wasm::start_loop(app);
         }
