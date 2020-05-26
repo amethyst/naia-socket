@@ -12,6 +12,7 @@ use crate::Packet;
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use web_sys::RtcDataChannel;
+        use log::{info, warn};
 
         #[derive(Clone)]
         pub struct MessageSender {
@@ -27,17 +28,33 @@ cfg_if! {
                 }
             }
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
-                //add header to packet
-                let mut header: Vec<u8> = Vec::new();
-                header.push(MessageHeader::Data as u8);
-                let outgoing_packet = [header.as_slice(), &packet.payload()]
-                    .concat()
-                    .into_boxed_slice();
+                let mut connection = self.connection_manager.borrow_mut();
 
-                //send it
-                self.data_channel.send_with_u8_array(&outgoing_packet);
-                self.connection_manager.borrow_mut().mark_sent();
-                Ok(())
+                if connection.is_connectionless() {
+                    if let Err(err) = self.data_channel.send_with_u8_array(&packet.payload()) {
+                        warn!("send message failure!");
+                    }
+                    Ok(())
+                } else {
+                    //add header to packet
+                    let mut header: Vec<u8> = Vec::new();
+                    header.push(MessageHeader::Data as u8);
+                    let outgoing_packet = [header.as_slice(), &packet.payload()]
+                        .concat()
+                        .into_boxed_slice();
+
+                    //send it
+                    match self.data_channel.send_with_u8_array(&outgoing_packet) {
+                        Ok(_) => {
+                            connection.mark_sent();
+                            Ok(())
+                        }
+                        Err(err) => {
+                            warn!("send message failure!");
+                            Ok(())
+                        }
+                    }
+                }
             }
         }
     }
@@ -63,23 +80,36 @@ cfg_if! {
             }
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
 
-                //add header to packet
-                let mut header: Vec<u8> = Vec::new();
-                header.push(MessageHeader::Data as u8);
-                let outgoing_packet = [header.as_slice(), &packet.payload()]
-                    .concat()
-                    .into_boxed_slice();
+                let mut connection = self.connection_manager.borrow_mut();
 
-                //send it
-                match self.socket
-                    .borrow()
-                    .send_to(&outgoing_packet, self.address)
-                {
-                    Ok(_) => {
-                        self.connection_manager.borrow_mut().mark_sent();
-                        Ok(())
+                if connection.is_connectionless() {
+                    //send it
+                    if let Err(err) = self.socket.borrow().send_to(&packet.payload(), self.address) {
+                        return Err(Box::new(err));
                     }
-                    Err(err) => { Err(Box::new(err)) }
+                    else {
+                        return Ok(());
+                    }
+                }
+                else {
+                    //add header to packet
+                    let mut header: Vec<u8> = Vec::new();
+                    header.push(MessageHeader::Data as u8);
+                    let outgoing_packet = [header.as_slice(), &packet.payload()]
+                        .concat()
+                        .into_boxed_slice();
+
+                    //send it
+                    match self.socket
+                        .borrow()
+                        .send_to(&outgoing_packet, self.address)
+                    {
+                        Ok(_) => {
+                            connection.mark_sent();
+                            Ok(())
+                        }
+                        Err(err) => { Err(Box::new(err)) }
+                    }
                 }
             }
         }

@@ -18,7 +18,7 @@ use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader,
 pub struct UdpClientSocket {
     address: SocketAddr,
     connected: bool,
-    handshake_timer: Timer,
+    handshake_timer: Option<Timer>,
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
     connection_manager: Rc<RefCell<ConnectionManager>>,
@@ -43,14 +43,23 @@ impl UdpClientSocket {
             None => Config::default(),
         };
 
-        let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration)));
+        let connection_manager = match some_config.connectionless {
+            false => Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration))),
+            true => Rc::new(RefCell::new(ConnectionManager::connectionless())),
+        };
         let message_sender = MessageSender::new(server_socket_address, socket.clone(), connection_manager.clone());
-        let mut handshake_timer = Timer::new(some_config.send_handshake_interval);
-        handshake_timer.ring_manual();
+
+        let mut handshake_timer = None;
+        let mut connected= true;
+        if !some_config.connectionless {
+            handshake_timer = Some(Timer::new(some_config.send_handshake_interval));
+            handshake_timer.as_mut().unwrap().ring_manual();
+            connected = false;
+        }
 
         UdpClientSocket {
             address: server_socket_address,
-            connected: false,
+            connected,
             handshake_timer,
             socket,
             receive_buffer: vec![0; DEFAULT_MTU as usize],
@@ -62,30 +71,32 @@ impl UdpClientSocket {
 
     pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
 
-        if self.connected {
-            if self.connection_manager.borrow().should_drop() {
-                self.connected = false;
-                return Ok(SocketEvent::Disconnection);
-            }
-            if self.connection_manager.borrow().should_send_heartbeat() {
-                match self.socket
-                    .borrow()
-                    .send_to(&[MessageHeader::Heartbeat as u8], self.address)
-                    {
-                        Ok(_) => { self.connection_manager.borrow_mut().mark_sent(); }
-                        Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
-                    }
-            }
-        } else {
-            if self.handshake_timer.ringing() {
-                match self.socket
-                    .borrow()
-                    .send_to(&[MessageHeader::ClientHandshake as u8], self.address)
-                    {
-                        Ok(_) => { }
-                        Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
-                    }
-                self.handshake_timer.reset();
+        if !self.config.connectionless {
+            if self.connected {
+                if self.connection_manager.borrow().should_drop() {
+                    self.connected = false;
+                    return Ok(SocketEvent::Disconnection);
+                }
+                if self.connection_manager.borrow().should_send_heartbeat() {
+                    match self.socket
+                        .borrow()
+                        .send_to(&[MessageHeader::Heartbeat as u8], self.address)
+                        {
+                            Ok(_) => { self.connection_manager.borrow_mut().mark_sent(); }
+                            Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
+                        }
+                }
+            } else {
+                if self.handshake_timer.as_ref().unwrap().ringing() {
+                    match self.socket
+                        .borrow()
+                        .send_to(&[MessageHeader::ClientHandshake as u8], self.address)
+                        {
+                            Ok(_) => {}
+                            Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
+                        }
+                    self.handshake_timer.as_mut().unwrap().reset();
+                }
             }
         }
 
@@ -98,26 +109,33 @@ impl UdpClientSocket {
             Ok((payload, address)) => {
                 if address == self.address {
 
-                    self.connection_manager.borrow_mut().mark_heard();
+                    if self.config.connectionless {
+                        return Ok(SocketEvent::Packet(Packet::new(payload.to_vec())));
+                    }
+                    else {
+                        self.connection_manager.borrow_mut().mark_heard();
 
-                    let header: MessageHeader = payload[0].into();
-                    match header {
-                        MessageHeader::ServerHandshake => {
-                            if !self.connected {
-                                self.connected = true;
-                                return Ok(SocketEvent::Connection);
+                        let header: MessageHeader = payload[0].into();
+                        match header {
+                            MessageHeader::ServerHandshake => {
+                                if !self.config.connectionless {
+                                    if !self.connected {
+                                        self.connected = true;
+                                        return Ok(SocketEvent::Connection);
+                                    }
+                                }
                             }
+                            MessageHeader::Data => {
+                                let boxed = payload[1..].to_vec().into_boxed_slice();
+                                let packet = Packet::new_raw(boxed);
+                                return Ok(SocketEvent::Packet(packet));
+                            }
+                            MessageHeader::Heartbeat => {
+                                // Already registered heartbeat, no need for more
+                                info!("Heartbeat");
+                            }
+                            _ => {}
                         }
-                        MessageHeader::Data => {
-                            let boxed = payload[1..].to_vec().into_boxed_slice();
-                            let packet = Packet::new_raw(boxed);
-                            return Ok(SocketEvent::Packet(packet));
-                        }
-                        MessageHeader::Heartbeat => {
-                            // Already registered heartbeat, no need for more
-                            info!("Heartbeat");
-                        }
-                        _ => {}
                     }
                 } else {
                     return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
