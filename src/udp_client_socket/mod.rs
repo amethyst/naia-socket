@@ -13,12 +13,12 @@ use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
 use crate::Packet;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, ConnectionManager, DEFAULT_MTU};
+use gaia_socket_shared::{find_my_ip_address, find_available_port, MessageHeader, Config, ConnectionManager, DEFAULT_MTU, Timer};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
     connected: bool,
-    timeout: u16,
+    handshake_timer: Timer,
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
     connection_manager: Rc<RefCell<ConnectionManager>>,
@@ -45,11 +45,13 @@ impl UdpClientSocket {
 
         let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration)));
         let message_sender = MessageSender::new(server_socket_address, socket.clone(), connection_manager.clone());
+        let mut handshake_timer = Timer::new(some_config.send_handshake_interval);
+        handshake_timer.ring_manual();
 
         UdpClientSocket {
             address: server_socket_address,
             connected: false,
-            timeout: 0,
+            handshake_timer,
             socket,
             receive_buffer: vec![0; DEFAULT_MTU as usize],
             connection_manager,
@@ -75,19 +77,15 @@ impl UdpClientSocket {
                     }
             }
         } else {
-            if self.timeout > 0 {
-                self.timeout -= 1;
-            } else {
-
+            if self.handshake_timer.ringing() {
                 match self.socket
                     .borrow()
                     .send_to(&[MessageHeader::ClientHandshake as u8], self.address)
-                {
-                    Ok(_) => { }
-                    Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
-                }
-
-                self.timeout = 100;
+                    {
+                        Ok(_) => { }
+                        Err(err) => { return Err(GaiaClientSocketError::Wrapped(Box::new(err))); }
+                    }
+                self.handshake_timer.reset();
             }
         }
 

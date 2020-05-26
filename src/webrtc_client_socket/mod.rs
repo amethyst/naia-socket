@@ -12,17 +12,17 @@ use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
 use crate::Packet;
 
-use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
+use gaia_socket_shared::{MessageHeader, Config, ConnectionManager, Timer};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     data_channel: RtcDataChannel,
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
     connected: bool,
-    timeout: u16,
     connection_manager: Rc<RefCell<ConnectionManager>>,
     message_sender: MessageSender,
     config: Config,
+    handshake_timer: Timer,
 }
 
 impl WebrtcClientSocket {
@@ -38,13 +38,15 @@ impl WebrtcClientSocket {
 
         let connection_manager = Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration)));
         let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone());
+        let mut handshake_timer = Timer::new(some_config.send_handshake_interval);
+        handshake_timer.ring_manual();
 
         WebrtcClientSocket {
             address: server_address.parse().unwrap(),
             data_channel,
             message_queue,
             connected: false,
-            timeout: 0,
+            handshake_timer,
             connection_manager,
             message_sender,
             config: some_config,
@@ -63,11 +65,9 @@ impl WebrtcClientSocket {
                 self.connection_manager.borrow_mut().mark_sent();
             }
         } else {
-            if self.timeout > 0 {
-                self.timeout -= 1;
-            } else {
+            if handshake_timer.ringing() {
                 self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::ClientHandshake as u8]).unwrap());
-                self.timeout = 100;
+                handshake_timer.reset();
             }
         }
 
