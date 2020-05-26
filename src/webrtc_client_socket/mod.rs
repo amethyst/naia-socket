@@ -177,20 +177,16 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
 
         let msg_queue_clone_2 = msg_queue_clone.clone();
         let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
-            if let Ok(abuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
-                //info!("UNIMPLEMENTED! message event, received arraybuffer: {:?}", _);
-                let array = js_sys::Uint8Array::new(&abuf);
-                let len = array.byte_length() as usize;
+
+            if let Ok(arraybuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
+                let uarray: js_sys::Uint8Array = js_sys::Uint8Array::new(&arraybuf);
+                let mut body = vec![0; uarray.length() as usize];
+                uarray.copy_to(&mut body[..]);
                 msg_queue_clone_2
                     .borrow_mut()
-                    .push_back(Ok(SocketEvent::Packet(Packet::new(array.to_vec()))));
-            } else if let Ok(_) = evt.data().dyn_into::<web_sys::Blob>() {
-                //info!("UNIMPLEMENTED! message event, received blob: {:?}", _);
-            } else if let Ok(_) = evt.data().dyn_into::<js_sys::JsString>() {
-                //info!("UNIMPLEMENTED! received string !(*!$)(&@
-            } else {
-                //info!("UNIMPLEMENTED! message event, received Unknown: {:?}", evt.data());
+                    .push_back(Ok(SocketEvent::Packet(Packet::new(body))));
             }
+
         }) as Box<dyn FnMut(MessageEvent)>);
 
         cloned_channel.set_onmessage(Some(channel_onmsg_closure.as_ref().unchecked_ref()));
