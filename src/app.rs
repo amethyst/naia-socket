@@ -16,8 +16,7 @@ impl App {
     pub fn new(server_socket_address: &str) -> App {
 
         let mut config = Config::default();
-        config.connection_events_enabled = false;
-        config.disconnection_events_enabled = false;
+        config.connectionless = true;
 
         let mut client_socket = ClientSocket::connect(&server_socket_address, Some(config));
         let mut message_sender = client_socket.get_sender();
