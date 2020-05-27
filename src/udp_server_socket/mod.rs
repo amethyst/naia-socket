@@ -73,7 +73,7 @@ impl UdpServerSocket {
                                     Ok(_) => {
                                         connection.mark_sent();
                                     },
-                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); continue; }
                                 }
                         }
                     }
@@ -82,6 +82,7 @@ impl UdpServerSocket {
                 if let Some(addr) = self.outstanding_disconnects.pop_front() {
                     self.clients.borrow_mut().remove(&addr);
                     output = Some(Ok(SocketEvent::Disconnection(addr)));
+                    continue;
                 }
             }
 
@@ -89,6 +90,7 @@ impl UdpServerSocket {
             if self.tick_timer.ringing() {
                 self.tick_timer.reset();
                 output = Some(Ok(SocketEvent::Tick));
+                continue;
             }
 
             let buffer: &mut [u8] = self.receive_buffer.as_mut();
@@ -104,6 +106,7 @@ impl UdpServerSocket {
                         }
                         let packet = Packet::new(address, payload.to_vec());
                         output = Some(Ok(SocketEvent::Packet(packet)));
+                        continue;
                     } else {
                         match self.clients.borrow_mut().get_mut(&address) {
                             Some(connection) => {
@@ -123,12 +126,13 @@ impl UdpServerSocket {
                                     .send_to(&[MessageHeader::ServerHandshake as u8], address)
                                     {
                                         Ok(_) => {},
-                                        Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); }
+                                        Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); continue; }
                                     }
 
                                 if !self.clients.borrow().contains_key(&address) {
                                     self.clients.borrow_mut().insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
                                     output = Some(Ok(SocketEvent::Connection(address)));
+                                    continue;
                                 }
                             }
                             MessageHeader::Data => {
@@ -136,6 +140,7 @@ impl UdpServerSocket {
                                     let boxed = payload[1..].to_vec().into_boxed_slice();
                                     let packet = Packet::new_raw(address, boxed);
                                     output = Some(Ok(SocketEvent::Packet(packet)));
+                                    continue;
                                 } else {
                                     warn!("received data from unauthenticated client: {}", address);
                                 }
@@ -153,6 +158,7 @@ impl UdpServerSocket {
                 }
                 Err(err) => {
                     output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(err))));
+                    continue;
                 }
             }
         }
