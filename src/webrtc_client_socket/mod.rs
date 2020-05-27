@@ -33,10 +33,11 @@ impl WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
         let data_channel = webrtc_initialize(server_address, message_queue.clone());
 
-        let some_config = match config {
+        let mut some_config = match config {
             Some(config) => config,
             None => Config::default(),
         };
+        some_config.heartbeat_interval /= 2;
 
         let dropped_outgoing_messages = Rc::new(RefCell::new(VecDeque::new()));
         let connection_manager = match some_config.connectionless {

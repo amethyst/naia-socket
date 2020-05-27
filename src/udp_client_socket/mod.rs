@@ -38,10 +38,11 @@ impl UdpClientSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(client_socket_address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 
-        let some_config = match config {
+        let mut some_config = match config {
             Some(config) => config,
             None => Config::default(),
         };
+        some_config.heartbeat_interval /= 2;
 
         let connection_manager = match some_config.connectionless {
             false => Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration))),
