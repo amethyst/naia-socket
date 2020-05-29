@@ -11,7 +11,7 @@ use std::{
     io::{Error as IoError},
     collections::{VecDeque, HashMap},
 };
-use webrtc_unreliable::{Server as RtcServer, MessageType};
+use webrtc_unreliable::{Server as RtcServer, MessageType, SendError};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
@@ -290,6 +290,12 @@ impl WebrtcServerSocket {
                             }
                         }
                         Err(error) => {
+                            if !self.config.connectionless {
+                                match error {
+                                    SendError::ClientNotConnected => self.outstanding_disconnects.push_back(address),
+                                    _ => {}
+                                }
+                            }
                             return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
                         }
                     }
@@ -314,6 +320,10 @@ impl WebrtcServerSocket {
                                         connection.mark_sent();
                                     }
                                     Err(error) => {
+                                        match error {
+                                            SendError::ClientNotConnected => self.outstanding_disconnects.push_back(*address),
+                                            _ => {}
+                                        }
                                         return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
                                     }
                                 }
