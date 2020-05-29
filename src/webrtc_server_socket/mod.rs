@@ -296,7 +296,7 @@ impl WebrtcServerSocket {
                                     _ => {}
                                 }
                             }
-                            return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
+                            return Err(GaiaServerSocketError::SendError(address));
                         }
                     }
                 }
