@@ -19,3 +19,9 @@ pub use connection_manager::ConnectionManager;
 
 mod timer;
 pub use timer::Timer;
+
+mod instant;
+pub use instant::Instant;
+
+mod duration;
+pub use duration::Duration;
