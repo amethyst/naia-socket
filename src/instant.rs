@@ -15,14 +15,14 @@ cfg_if! {
         impl Instant {
             pub fn now() -> Self {
                 Instant {
-                    last: Date::now(),
+                    inner: Date::now(),
                 }
             }
 
             pub fn elapsed(&self) -> Duration {
-                let inner_duration = Date::now() - last;
-                let seconds: u64 = inner_duration / 1000;
-                let nanos: u32 = (inner_duration % 1000) * 1000000;
+                let inner_duration = Date::now() - self.inner;
+                let seconds: u64 = (inner_duration as u64) / 1000;
+                let nanos: u32 = ((inner_duration as u32) % 1000) * 1000000;
                 return Duration::new(seconds, nanos);
             }
         }
