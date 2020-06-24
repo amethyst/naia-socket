@@ -35,16 +35,6 @@ impl App {
         match self.client_socket.receive() {
             Ok(event) => {
                 match event {
-                    SocketEvent::Connection => {
-                        info!("Client connected to: {}", self.client_socket.server_address());
-                        self.message_sender.send(Packet::new(
-                            PING_MSG.to_string().into_bytes(),
-                        ))
-                            .expect("send error");
-                    }
-                    SocketEvent::Disconnection => {
-                        info!("Client disconnected from: {}", self.client_socket.server_address());
-                    }
                     SocketEvent::Packet(packet) => {
 
                         let message = String::from_utf8_lossy(packet.payload());
