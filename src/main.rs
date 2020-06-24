@@ -27,12 +27,6 @@ async fn main() {
         match server_socket.receive().await {
             Ok(event) => {
                 match event {
-                    SocketEvent::Connection(address) => {
-                        info!("Server connected to: {}", address);
-                    }
-                    SocketEvent::Disconnection(address) => {
-                        info!("Server disconnected from: {:?}", address);
-                    }
                     SocketEvent::Packet(packet) => {
 
                         let address = packet.address();
