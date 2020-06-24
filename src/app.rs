@@ -15,17 +15,14 @@ pub struct App {
 impl App {
     pub fn new(server_socket_address: &str) -> App {
 
-        let mut config = Config::default();
-        // Test a connectionless socket by uncommenting the below line
-        //        config.connectionless = true;
+        let config = Config::default();
 
         let mut client_socket = ClientSocket::connect(&server_socket_address, Some(config));
         let mut message_sender = client_socket.get_sender();
 
-        // If your socket is connectionless, kick off the ping/ponging this way
-        //        message_sender.send(Packet::new(
-        //            PING_MSG.to_string().into_bytes(),
-        //        ));
+        message_sender.send(Packet::new(
+            PING_MSG.to_string().into_bytes(),
+        )).unwrap();
 
         App {
             client_socket,
