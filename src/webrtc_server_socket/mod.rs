@@ -5,13 +5,13 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Error as HyperError, Method, Response, Server, StatusCode,
 };
-use log::{info, warn};
+use log::{info};
 use std::{
     net::{ IpAddr, SocketAddr, TcpListener },
     io::{Error as IoError},
-    collections::{VecDeque, HashMap},
+    collections::{HashSet},
 };
-use webrtc_unreliable::{Server as RtcServer, MessageType, SendError};
+use webrtc_unreliable::{Server as RtcServer, MessageType};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
@@ -21,7 +21,7 @@ use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaServerSocketError;
 use crate::Packet;
-use gaia_socket_shared::{MessageHeader, Config, ConnectionManager};
+use gaia_socket_shared::{Config};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 
@@ -29,11 +29,8 @@ pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<Packet>,
     to_client_receiver: mpsc::Receiver<Packet>,
     tick_timer: Interval,
-    heartbeat_timer: Interval,
     rtc_server: RtcServer,
-    clients: HashMap<SocketAddr, ConnectionManager>,
-    outstanding_disconnects: VecDeque<SocketAddr>,
-    config: Config,
+    clients: HashSet<SocketAddr>,
 }
 
 impl WebrtcServerSocket {
@@ -53,21 +50,17 @@ impl WebrtcServerSocket {
         let rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr).await
             .expect("could not start RTC server");
 
-        let mut some_config = match config {
-            Some(config) => config,
-            None => Config::default(),
+        let tick_interval = match config {
+            Some(config) => config.tick_interval,
+            None => Config::default().tick_interval,
         };
-        some_config.heartbeat_interval /= 2;
 
         let socket = WebrtcServerSocket {
             to_client_sender,
             to_client_receiver,
             rtc_server,
-            tick_timer: time::interval(some_config.tick_interval),
-            heartbeat_timer: time::interval(some_config.heartbeat_interval),
-            clients: HashMap::new(),
-            outstanding_disconnects: VecDeque::new(),
-            config: some_config
+            tick_timer: time::interval(tick_interval),
+            clients: HashSet::new(),
         };
 
         let session_endpoint = socket.rtc_server.session_endpoint();
@@ -119,14 +112,6 @@ impl WebrtcServerSocket {
             FromClientMessage(Result<Packet, IoError>),
             ToClientMessage(Packet),
             PeriodicTimer,
-            HeartbeatTimer,
-        }
-
-        if !self.config.connectionless {
-            if let Some(addr) = self.outstanding_disconnects.pop_front() {
-                self.clients.remove(&addr);
-                return Ok(SocketEvent::Disconnection(addr));
-            }
         }
 
         loop {
@@ -141,53 +126,24 @@ impl WebrtcServerSocket {
                 let from_client_message_receiver_next = rtc_server.recv().fuse();
                 pin_mut!(from_client_message_receiver_next);
 
-                if !self.config.connectionless {
-                    let heartbeater_next = self.heartbeat_timer.tick().fuse();
-                    pin_mut!(heartbeater_next);
-
-                    select! {
-                        from_client_result = from_client_message_receiver_next => {
-                            Next::FromClientMessage(
-                                match from_client_result {
-                                    Ok(msg) => {
-                                        Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
-                                    }
-                                    Err(err) => { Err(err) }
+                select! {
+                    from_client_result = from_client_message_receiver_next => {
+                        Next::FromClientMessage(
+                            match from_client_result {
+                                Ok(msg) => {
+                                    Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
                                 }
-                            )
-                        }
-                        to_client_message = to_client_receiver_next => {
-                            Next::ToClientMessage(
-                                to_client_message.expect("to server message receiver closed")
-                            )
-                        }
-                        _ = timer_next => {
-                            Next::PeriodicTimer
-                        }
-                        _ = heartbeater_next => {
-                            Next::HeartbeatTimer
-                        }
+                                Err(err) => { Err(err) }
+                            }
+                        )
                     }
-                } else {
-                    select! {
-                        from_client_result = from_client_message_receiver_next => {
-                            Next::FromClientMessage(
-                                match from_client_result {
-                                    Ok(msg) => {
-                                        Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
-                                    }
-                                    Err(err) => { Err(err) }
-                                }
-                            )
-                        }
-                        to_client_message = to_client_receiver_next => {
-                            Next::ToClientMessage(
-                                to_client_message.expect("to server message receiver closed")
-                            )
-                        }
-                        _ = timer_next => {
-                            Next::PeriodicTimer
-                        }
+                    to_client_message = to_client_receiver_next => {
+                        Next::ToClientMessage(
+                            to_client_message.expect("to server message receiver closed")
+                        )
+                    }
+                    _ = timer_next => {
+                        Next::PeriodicTimer
                     }
                 }
             };
@@ -196,72 +152,11 @@ impl WebrtcServerSocket {
                 Next::FromClientMessage(from_client_message) => {
                     match from_client_message {
                         Ok(packet) => {
-
                             let address = packet.address();
-
-                            if self.config.connectionless {
-                                if !self.clients.contains_key(&address) {
-                                    self.clients.insert(address, ConnectionManager::connectionless());
-                                }
-                                return Ok(SocketEvent::Packet(packet));
-                            } else {
-
-                                match self.clients.get_mut(&address) {
-                                    Some(connection) => {
-                                        connection.mark_heard();
-                                    }
-                                    None => {
-                                        //not yet established connection
-                                    }
-                                }
-
-                                let payload = packet.payload();
-                                let header: MessageHeader = payload[0].into();
-                                match header {
-                                    MessageHeader::ClientHandshake => {
-                                        // Send Server Handshake
-                                        match self.rtc_server.send(
-                                            &[MessageHeader::ServerHandshake as u8],
-                                            MessageType::Binary,
-                                            &address)
-                                            .await
-                                            {
-                                                Ok(_) => {
-                                                    match self.clients.get_mut(&address) {
-                                                        Some(connection) => {
-                                                            connection.mark_sent();
-                                                        }
-                                                        None => {
-                                                            //sending to an unknown address??
-                                                        }
-                                                    }
-                                                }
-                                                Err(error) => {
-                                                    return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
-                                                }
-                                            }
-
-                                        if !self.clients.contains_key(&address) {
-                                            self.clients.insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
-                                            return Ok(SocketEvent::Connection(address));
-                                        }
-                                    }
-                                    MessageHeader::Data => {
-                                        if self.clients.contains_key(&address) {
-                                            let boxed = payload[1..].to_vec().into_boxed_slice();
-                                            let packet = Packet::new_raw(address, boxed);
-                                            return Ok(SocketEvent::Packet(packet));
-                                        } else {
-                                            warn!("received data from unauthenticated client")
-                                        }
-                                    }
-                                    MessageHeader::Heartbeat => {
-                                        // Already registered heartbeat, no need for more
-                                        info!("Heartbeat");
-                                    }
-                                    _ => {}
-                                }
+                            if !self.clients.contains(&address) {
+                                self.clients.insert(address);
                             }
+                            return Ok(SocketEvent::Packet(packet));
                         }
                         Err(err) => {
                             return Err(GaiaServerSocketError::Wrapped(Box::new(err)));
@@ -277,74 +172,25 @@ impl WebrtcServerSocket {
                         &address)
                         .await
                     {
-                        Ok(_) => {
-                            if !self.config.connectionless {
-                                match self.clients.get_mut(&address) {
-                                    Some(connection) => {
-                                        connection.mark_sent();
-                                    }
-                                    None => {
-                                        //sending to an unknown address??
-                                    }
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            if !self.config.connectionless {
-                                match error {
-                                    SendError::ClientNotConnected => self.outstanding_disconnects.push_back(address),
-                                    _ => {}
-                                }
-                            }
+                        Err(_) => {
                             return Err(GaiaServerSocketError::SendError(address));
                         }
+                        _ => {}
                     }
                 }
                 Next::PeriodicTimer => {
                     return Ok(SocketEvent::Tick);
-                }
-                Next::HeartbeatTimer => {
-
-                    for (address, connection) in self.clients.iter_mut() {
-                        if connection.should_drop() {
-                            self.outstanding_disconnects.push_back(*address);
-                        }
-                        else if connection.should_send_heartbeat() {
-                            match self.rtc_server.send(
-                                &[MessageHeader::Heartbeat as u8],
-                                MessageType::Binary,
-                                &address)
-                                .await
-                                {
-                                    Ok(_) => {
-                                        connection.mark_sent();
-                                    }
-                                    Err(error) => {
-                                        match error {
-                                            SendError::ClientNotConnected => self.outstanding_disconnects.push_back(*address),
-                                            _ => {}
-                                        }
-                                        return Err(GaiaServerSocketError::Wrapped(Box::new(error)));
-                                    }
-                                }
-                        }
-                    }
-
-                    if let Some(addr) = self.outstanding_disconnects.pop_front() {
-                        self.clients.remove(&addr);
-                        return Ok(SocketEvent::Disconnection(addr));
-                    }
                 }
             }
         }
     }
 
     pub fn get_sender(&mut self) -> MessageSender {
-        return MessageSender::new(self.to_client_sender.clone(), self.config.connectionless);
+        return MessageSender::new(self.to_client_sender.clone());
     }
 
     pub fn get_clients(&mut self) -> Vec<SocketAddr> {
-        self.clients.keys().cloned().collect()
+        self.clients.iter().cloned().collect()
     }
 }
 

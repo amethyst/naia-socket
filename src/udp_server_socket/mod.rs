@@ -1,16 +1,16 @@
 
 use std::{
-    collections::{VecDeque, HashMap},
+    collections::{HashSet},
     net::{SocketAddr, UdpSocket},
     cell::RefCell,
     rc::Rc,
     io::ErrorKind,
 };
-use log::{info, warn};
+use log::{info};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{MessageHeader, Config, DEFAULT_MTU, ConnectionManager, Timer};
+use gaia_socket_shared::{Config, Timer};
 use crate::error::GaiaServerSocketError;
 use crate::Packet;
 
@@ -18,11 +18,8 @@ pub struct UdpServerSocket {
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,
     message_sender: MessageSender,
-    heartbeat_timer: Timer,
     tick_timer: Timer,
-    clients: Rc<RefCell<HashMap<SocketAddr, ConnectionManager>>>,
-    outstanding_disconnects: VecDeque<SocketAddr>,
-    config: Config,
+    clients: Rc<RefCell<HashSet<SocketAddr>>>,
 }
 
 impl UdpServerSocket {
@@ -32,60 +29,26 @@ impl UdpServerSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 
-        let mut some_config = match config {
-            Some(config) => config,
-            None => Config::default(),
+        let tick_interval = match config {
+            Some(config) => config.tick_interval,
+            None => Config::default().tick_interval,
         };
-        some_config.heartbeat_interval /= 2;
 
-        let clients_map = Rc::new(RefCell::new(HashMap::new()));
-        let message_sender = MessageSender::new(socket.clone(), clients_map.clone());
+        let clients = Rc::new(RefCell::new(HashSet::new()));
+        let message_sender = MessageSender::new(socket.clone(), clients.clone());
 
         UdpServerSocket {
             socket,
-            receive_buffer: vec![0; DEFAULT_MTU as usize], //should be input from config
+            receive_buffer: vec![0; 1472], //should be input from config
             message_sender,
-            heartbeat_timer: Timer::new(some_config.heartbeat_interval),
-            tick_timer: Timer::new(some_config.tick_interval),
-            clients: clients_map,
-            outstanding_disconnects: VecDeque::new(),
-            config: some_config,
+            tick_timer: Timer::new(tick_interval),
+            clients: clients,
         }
     }
 
     pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
         let mut output: Option<Result<SocketEvent, GaiaServerSocketError>> = None;
         while output.is_none() {
-
-            // heartbeats
-            if !self.config.connectionless {
-                if self.heartbeat_timer.ringing() {
-                    self.heartbeat_timer.reset();
-
-                    for (address, connection) in self.clients.borrow_mut().iter_mut() {
-                        if connection.should_drop() {
-                            self.outstanding_disconnects.push_back(*address);
-                        } else if connection.should_send_heartbeat() {
-                            match self.socket
-                                .borrow()
-                                .send_to(&[MessageHeader::Heartbeat as u8], address)
-                                {
-                                    Ok(_) => {
-                                        connection.mark_sent();
-                                    },
-                                    Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); continue; }
-                                }
-                        }
-                    }
-                }
-
-                if let Some(addr) = self.outstanding_disconnects.pop_front() {
-                    self.clients.borrow_mut().remove(&addr);
-                    output = Some(Ok(SocketEvent::Disconnection(addr)));
-                    continue;
-                }
-            }
-
 
             if self.tick_timer.ringing() {
                 self.tick_timer.reset();
@@ -100,58 +63,12 @@ impl UdpServerSocket {
                 .map(move |(recv_len, address)| (&buffer[..recv_len], address))
             {
                 Ok((payload, address)) => {
-                    if self.config.connectionless {
-                        if !self.clients.borrow().contains_key(&address) {
-                            self.clients.borrow_mut().insert(address, ConnectionManager::connectionless());
-                        }
-                        let packet = Packet::new(address, payload.to_vec());
-                        output = Some(Ok(SocketEvent::Packet(packet)));
-                        continue;
-                    } else {
-                        match self.clients.borrow_mut().get_mut(&address) {
-                            Some(connection) => {
-                                connection.mark_heard();
-                            }
-                            None => {
-                                //not yet established connection
-                            }
-                        }
-
-                        let header: MessageHeader = payload[0].into();
-                        match header {
-                            MessageHeader::ClientHandshake => {
-                                // Send Server Handshake
-                                match self.socket
-                                    .borrow()
-                                    .send_to(&[MessageHeader::ServerHandshake as u8], address)
-                                    {
-                                        Ok(_) => {},
-                                        Err(error) => { output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(error)))); continue; }
-                                    }
-
-                                if !self.clients.borrow().contains_key(&address) {
-                                    self.clients.borrow_mut().insert(address, ConnectionManager::new(self.config.heartbeat_interval, self.config.disconnection_timeout_duration));
-                                    output = Some(Ok(SocketEvent::Connection(address)));
-                                    continue;
-                                }
-                            }
-                            MessageHeader::Data => {
-                                if self.clients.borrow().contains_key(&address) {
-                                    let boxed = payload[1..].to_vec().into_boxed_slice();
-                                    let packet = Packet::new_raw(address, boxed);
-                                    output = Some(Ok(SocketEvent::Packet(packet)));
-                                    continue;
-                                } else {
-                                    warn!("received data from unauthenticated client: {}", address);
-                                }
-                            }
-                            MessageHeader::Heartbeat => {
-                                // Already registered heartbeat, no need for more
-                                info!("Heartbeat");
-                            }
-                            _ => {}
-                        }
+                    if !self.clients.borrow().contains(&address) {
+                        self.clients.borrow_mut().insert(address);
                     }
+                    let packet = Packet::new(address, payload.to_vec());
+                    output = Some(Ok(SocketEvent::Packet(packet)));
+                    continue;
                 }
                 Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
                     //just didn't receive anything this time
@@ -170,6 +87,6 @@ impl UdpServerSocket {
     }
 
     pub fn get_clients(&mut self) -> Vec<SocketAddr> {
-        self.clients.borrow().keys().cloned().collect()
+        self.clients.borrow().iter().cloned().collect()
     }
 }
