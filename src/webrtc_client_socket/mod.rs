@@ -11,81 +11,35 @@ use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
 use crate::error::GaiaClientSocketError;
 use crate::Packet;
-use std::time::Duration;
 
-use gaia_socket_shared::{MessageHeader, Config, ConnectionManager, Timer};
+use gaia_socket_shared::{Config};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
-    data_channel: RtcDataChannel,
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
-    connected: bool,
-    connection_manager: Rc<RefCell<ConnectionManager>>,
     message_sender: MessageSender,
-    config: Config,
-    handshake_timer: Option<Timer>,
     dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>,
 }
 
 impl WebrtcClientSocket {
 
-    pub fn connect(server_address: &str, config: Option<Config>) -> WebrtcClientSocket {
+    pub fn connect(server_address: &str, _: Option<Config>) -> WebrtcClientSocket {
         let message_queue = Rc::new(RefCell::new(VecDeque::new()));
         let data_channel = webrtc_initialize(server_address, message_queue.clone());
 
-        let mut some_config = match config {
-            Some(config) => config,
-            None => Config::default(),
-        };
-        some_config.heartbeat_interval /= 2;
-
         let dropped_outgoing_messages = Rc::new(RefCell::new(VecDeque::new()));
-        let connection_manager = match some_config.connectionless {
-            false => Rc::new(RefCell::new(ConnectionManager::new(some_config.heartbeat_interval, some_config.disconnection_timeout_duration))),
-            true => Rc::new(RefCell::new(ConnectionManager::connectionless())),
-        };
-        let message_sender = MessageSender::new(data_channel.clone(), connection_manager.clone(), dropped_outgoing_messages.clone());
 
-        let mut handshake_timer = None;
-        let mut connected= true;
-        if !some_config.connectionless {
-            handshake_timer = Some(Timer::new(some_config.send_handshake_interval));
-            handshake_timer.as_mut().unwrap().ring_manual();
-            connected = false;
-        }
+        let message_sender = MessageSender::new(data_channel.clone(), dropped_outgoing_messages.clone());
 
         WebrtcClientSocket {
             address: server_address.parse().unwrap(),
-            data_channel,
             message_queue,
-            connected,
-            handshake_timer,
-            connection_manager,
             message_sender,
-            config: some_config,
             dropped_outgoing_messages,
         }
     }
 
     pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
-
-        if !self.config.connectionless {
-            if self.connected {
-                if self.connection_manager.borrow().should_drop() {
-                    self.connected = false;
-                    return Ok(SocketEvent::Disconnection);
-                }
-                if self.connection_manager.borrow().should_send_heartbeat() {
-                    self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::Heartbeat as u8]).unwrap());
-                    self.connection_manager.borrow_mut().mark_sent();
-                }
-            } else {
-                if self.handshake_timer.as_ref().unwrap().ringing() {
-                    self.data_channel.send_with_str(std::str::from_utf8(&[MessageHeader::ClientHandshake as u8]).unwrap());
-                    self.handshake_timer.as_mut().unwrap().reset();
-                }
-            }
-        }
 
         if !self.dropped_outgoing_messages.borrow().is_empty() {
             let mut some_dropped_packets: Option<Vec<Packet>> = None;
@@ -110,34 +64,7 @@ impl WebrtcClientSocket {
                 .pop_front()
                 .expect("message queue shouldn't be empty!") {
                 Ok(SocketEvent::Packet(packet)) => {
-
-                    if self.config.connectionless {
-                        return Ok(SocketEvent::Packet(packet));
-                    }
-                    else {
-                        self.connection_manager.borrow_mut().mark_heard();
-
-                        let payload = packet.payload();
-                        let header: MessageHeader = payload[0].into();
-                        match header {
-                            MessageHeader::ServerHandshake => {
-                                if !self.connected {
-                                    self.connected = true;
-                                    return Ok(SocketEvent::Connection);
-                                }
-                            }
-                            MessageHeader::Data => {
-                                let boxed = payload[1..].to_vec().into_boxed_slice();
-                                let packet = Packet::new_raw(boxed);
-                                return Ok(SocketEvent::Packet(packet));
-                            }
-                            MessageHeader::Heartbeat => {
-                                // Already registered heartbeat, no need for more
-                                info!("Heartbeat");
-                            }
-                            _ => {}
-                        }
-                    }
+                    return Ok(SocketEvent::Packet(packet));
                 }
                 Ok(inner) => { return Ok(inner); }
                 Err(err) => { return Err(err); }
