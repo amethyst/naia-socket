@@ -17,9 +17,7 @@ async fn main() {
 
     let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
-    let mut config = Config::default();
-    // Test a connectionless socket by uncommenting the below line
-    // config.connectionless = true;
+    let config = Config::default();
 
     let mut server_socket = ServerSocket::listen(current_socket_address.as_str(), Some(config)).await;
 
