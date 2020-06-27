@@ -15,6 +15,8 @@ async fn main() {
 
     simple_logger::init_with_level(log::Level::Info).expect("A logger was already initialized");
 
+    info!("Naia Server Socket Example Started");
+
     let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
 
     let config = Config::default();
