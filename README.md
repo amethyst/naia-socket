@@ -1,4 +1,4 @@
-# gaia-server-socket-example
+# naia-server-socket-example
 
 To run a UDP-sending-and-receiving Server, run:
     `cargo run --features "use-udp"`

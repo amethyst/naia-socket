@@ -4,7 +4,7 @@ extern crate log;
 
 use simple_logger;
 
-use gaia_server_socket::{ServerSocket, SocketEvent, Config, Packet, find_my_ip_address};
+use naia_server_socket::{ServerSocket, SocketEvent, Config, Packet, find_my_ip_address};
 
 const SERVER_PORT: &str = "3179";
 const PING_MSG: &str = "ping";
