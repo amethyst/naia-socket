@@ -6,7 +6,7 @@ use simple_logger;
 
 use naia_server_socket::{ServerSocket, SocketEvent, Config, Packet, find_my_ip_address};
 
-const SERVER_PORT: &str = "3179";
+const SERVER_PORT: &str = "14191";
 const PING_MSG: &str = "ping";
 const PONG_MSG: &str = "pong";
 
