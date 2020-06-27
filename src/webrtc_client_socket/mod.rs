@@ -42,16 +42,11 @@ impl WebrtcClientSocket {
     pub fn receive(&mut self) -> Result<SocketEvent, NaiaClientSocketError> {
 
         if !self.dropped_outgoing_messages.borrow().is_empty() {
-            let mut some_dropped_packets: Option<Vec<Packet>> = None;
-            {
-                let mut dom = self.dropped_outgoing_messages.borrow_mut();
-                let dropped_packets: Vec<Packet> = dom.drain(..).collect::<Vec<Packet>>();
-                some_dropped_packets = Some(dropped_packets);
-            }
-            if let Some(dropped_packets) = some_dropped_packets {
-                for dropped_packet in dropped_packets {
-                    self.message_sender.send(dropped_packet);
-                }
+            let mut dom = self.dropped_outgoing_messages.borrow_mut();
+            let dropped_packets: Vec<Packet> = dom.drain(..).collect::<Vec<Packet>>();
+            for dropped_packet in dropped_packets {
+                self.message_sender.send(dropped_packet)
+                    .unwrap_or_else(|err| println!("Can't send dropped packet. Original Error: {:?}", err));
             }
         }
 
@@ -181,7 +176,8 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
             let request = XmlHttpRequest::new()
                 .expect("can't create new XmlHttpRequest");
 
-            request.open("POST", &server_url_msg_clone);
+            request.open("POST", &server_url_msg_clone)
+                .unwrap_or_else(|err| println!("WebSys, can't POST to server url. Original Error: {:?}", err));
 
             let request_2 = request.clone();
             let peer_clone_3 = peer_clone_2.clone();
@@ -236,7 +232,8 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
             request.set_onload(Some(request_callback.as_ref().unchecked_ref()));
             request_callback.forget();
 
-            request.send_with_opt_str(Some(peer_clone_2.local_description().unwrap().sdp().as_str()));
+            request.send_with_opt_str(Some(peer_clone_2.local_description().unwrap().sdp().as_str()))
+                .unwrap_or_else(|err| println!("WebSys, can't sent request str. Original Error: {:?}", err));
 
         }) as Box<dyn FnMut(JsValue)>);
 
