@@ -10,8 +10,8 @@ use log::{info};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use gaia_socket_shared::{Config, Timer};
-use crate::error::GaiaServerSocketError;
+use naia_socket_shared::{Config, Timer};
+use crate::error::NaiaServerSocketError;
 use crate::Packet;
 
 pub struct UdpServerSocket {
@@ -46,8 +46,8 @@ impl UdpServerSocket {
         }
     }
 
-    pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
-        let mut output: Option<Result<SocketEvent, GaiaServerSocketError>> = None;
+    pub async fn receive(&mut self) -> Result<SocketEvent, NaiaServerSocketError> {
+        let mut output: Option<Result<SocketEvent, NaiaServerSocketError>> = None;
         while output.is_none() {
 
             if self.tick_timer.ringing() {
@@ -74,7 +74,7 @@ impl UdpServerSocket {
                     //just didn't receive anything this time
                 }
                 Err(err) => {
-                    output = Some(Err(GaiaServerSocketError::Wrapped(Box::new(err))));
+                    output = Some(Err(NaiaServerSocketError::Wrapped(Box::new(err))));
                     continue;
                 }
             }

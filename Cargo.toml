@@ -1,5 +1,5 @@
 [package]
-name = "gaia-server-socket"
+name = "naia-server-socket"
 version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
@@ -10,7 +10,7 @@ use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
     "futures-core", "futures-util" ]
 
 [dependencies]
-gaia-socket-shared = { path = "../gaia-socket-shared" } # { git = "https://github.com/connorcarpenter/gaia-socket-shared" } #
+naia-socket-shared = { path = "../naia-socket-shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
 log = "0.4"
 cfg-if = "*"
 webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true }

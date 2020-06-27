@@ -1,4 +1,4 @@
-# gaia-server-socket
+# naia-server-socket
 
 One day this will be a cross-platform (including Wasm) Websocket API that wraps unreliable & unordered messages, using WebRTC & UDP.
 

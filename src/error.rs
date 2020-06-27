@@ -3,18 +3,18 @@ use std::fmt;
 use std::net::SocketAddr;
 
 #[derive(Debug)]
-pub enum GaiaServerSocketError {
+pub enum NaiaServerSocketError {
     Wrapped(Box<dyn Error>),
     SendError(SocketAddr),
 }
 
-impl fmt::Display for GaiaServerSocketError {
+impl fmt::Display for NaiaServerSocketError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            GaiaServerSocketError::Wrapped(boxed_err) => fmt::Display::fmt(boxed_err.as_ref(), f),
-            GaiaServerSocketError::SendError(addr) => fmt::Display::fmt(&addr, f),
+            NaiaServerSocketError::Wrapped(boxed_err) => fmt::Display::fmt(boxed_err.as_ref(), f),
+            NaiaServerSocketError::SendError(addr) => fmt::Display::fmt(&addr, f),
         }
     }
 }
 
-impl Error for GaiaServerSocketError {}
+impl Error for NaiaServerSocketError {}

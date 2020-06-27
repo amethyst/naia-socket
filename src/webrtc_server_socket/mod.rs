@@ -19,9 +19,9 @@ use tokio::time::{self, Interval};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use crate::error::GaiaServerSocketError;
+use crate::error::NaiaServerSocketError;
 use crate::Packet;
-use gaia_socket_shared::{Config};
+use naia_socket_shared::{Config};
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 
@@ -106,7 +106,7 @@ impl WebrtcServerSocket {
         socket
     }
 
-    pub async fn receive(&mut self) -> Result<SocketEvent, GaiaServerSocketError> {
+    pub async fn receive(&mut self) -> Result<SocketEvent, NaiaServerSocketError> {
 
         enum Next {
             FromClientMessage(Result<Packet, IoError>),
@@ -159,7 +159,7 @@ impl WebrtcServerSocket {
                             return Ok(SocketEvent::Packet(packet));
                         }
                         Err(err) => {
-                            return Err(GaiaServerSocketError::Wrapped(Box::new(err)));
+                            return Err(NaiaServerSocketError::Wrapped(Box::new(err)));
                         }
                     }
                 }
@@ -173,7 +173,7 @@ impl WebrtcServerSocket {
                         .await
                     {
                         Err(_) => {
-                            return Err(GaiaServerSocketError::SendError(address));
+                            return Err(NaiaServerSocketError::SendError(address));
                         }
                         _ => {}
                     }
