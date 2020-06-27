@@ -23,6 +23,6 @@ mod packet;
 pub use client_socket::ClientSocket;
 pub use socket_event::SocketEvent;
 pub use message_sender::MessageSender;
-pub use gaia_socket_shared::{Config, find_my_ip_address};
+pub use naia_socket_shared::{Config, find_my_ip_address};
 pub use packet::Packet;
-pub use error::GaiaClientSocketError;
+pub use error::NaiaClientSocketError;

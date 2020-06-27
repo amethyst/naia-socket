@@ -10,9 +10,9 @@ use std::{
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use crate::error::GaiaClientSocketError;
+use crate::error::NaiaClientSocketError;
 use crate::Packet;
-use gaia_socket_shared::{find_my_ip_address, find_available_port, Config};
+use naia_socket_shared::{find_my_ip_address, find_available_port, Config};
 
 pub struct UdpClientSocket {
     address: SocketAddr,
@@ -43,7 +43,7 @@ impl UdpClientSocket {
         }
     }
 
-    pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
+    pub fn receive(&mut self) -> Result<SocketEvent, NaiaClientSocketError> {
 
         let buffer: &mut [u8] = self.receive_buffer.as_mut();
         match self.socket
@@ -55,7 +55,7 @@ impl UdpClientSocket {
                 if address == self.address {
                     return Ok(SocketEvent::Packet(Packet::new(payload.to_vec())));
                 } else {
-                    return Err(GaiaClientSocketError::Message("Unknown sender.".to_string()));
+                    return Err(NaiaClientSocketError::Message("Unknown sender.".to_string()));
                 }
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
@@ -63,7 +63,7 @@ impl UdpClientSocket {
                 return Ok(SocketEvent::None);
             }
             Err(e) => {
-                return Err(GaiaClientSocketError::Wrapped(Box::new(e)));
+                return Err(NaiaClientSocketError::Wrapped(Box::new(e)));
             }
         }
     }

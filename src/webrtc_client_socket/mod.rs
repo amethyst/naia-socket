@@ -9,14 +9,14 @@ use std::collections::VecDeque;
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use crate::error::GaiaClientSocketError;
+use crate::error::NaiaClientSocketError;
 use crate::Packet;
 
-use gaia_socket_shared::{Config};
+use naia_socket_shared::{Config};
 
 pub struct WebrtcClientSocket {
     address: SocketAddr,
-    message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>,
+    message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, NaiaClientSocketError>>>>,
     message_sender: MessageSender,
     dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>,
 }
@@ -39,7 +39,7 @@ impl WebrtcClientSocket {
         }
     }
 
-    pub fn receive(&mut self) -> Result<SocketEvent, GaiaClientSocketError> {
+    pub fn receive(&mut self) -> Result<SocketEvent, NaiaClientSocketError> {
 
         if !self.dropped_outgoing_messages.borrow().is_empty() {
             let mut some_dropped_packets: Option<Vec<Packet>> = None;
@@ -117,7 +117,7 @@ pub struct IceServerConfig {
     pub urls: [String; 1],
 }
 
-fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<SocketEvent, GaiaClientSocketError>>>>) -> RtcDataChannel {
+fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<SocketEvent, NaiaClientSocketError>>>>) -> RtcDataChannel {
 
     let server_url_str: String = "http://".to_string() + address + "/new_rtc_session";
 
