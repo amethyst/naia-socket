@@ -5,7 +5,7 @@ mod app;
 mod loop_native;
 
 use log::info;
-use gaia_client_socket::{find_my_ip_address};
+use naia_client_socket::{find_my_ip_address};
 use app::App;
 
 const SERVER_PORT: &str = "3179";

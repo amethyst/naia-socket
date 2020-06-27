@@ -10,7 +10,7 @@ cfg_if! {
         mod loop_wasm;
 
         use wasm_bindgen::prelude::*;
-        use gaia_client_socket::Config;
+        use naia_client_socket::Config;
 
         use crate::app::App;
 

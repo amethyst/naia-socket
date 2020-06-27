@@ -1,7 +1,7 @@
 
 use log::{info};
 
-use gaia_client_socket::{ClientSocket, SocketEvent, MessageSender, Config, Packet};
+use naia_client_socket::{ClientSocket, SocketEvent, MessageSender, Config, Packet};
 
 const PING_MSG: &str = "ping";
 const PONG_MSG: &str = "pong";
