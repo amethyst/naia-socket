@@ -6,7 +6,6 @@ use std::{
     rc::Rc,
     io::ErrorKind,
 };
-use log::{info};
 
 use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
@@ -24,8 +23,6 @@ pub struct UdpServerSocket {
 
 impl UdpServerSocket {
     pub async fn listen(address: &str, config: Option<Config>) -> UdpServerSocket {
-        info!("UDP Server listening on: {}", address);
-
         let socket = Rc::new(RefCell::new(UdpSocket::bind(address).unwrap()));
         socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
 

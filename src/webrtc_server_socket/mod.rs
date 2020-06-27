@@ -35,8 +35,6 @@ pub struct WebrtcServerSocket {
 
 impl WebrtcServerSocket {
     pub async fn listen(address: &str, config: Option<Config>) -> WebrtcServerSocket {
-        info!("Hello WebrtcServerSocket!");
-
         let session_listen_addr: SocketAddr = address
             .parse()
             .expect("could not parse HTTP address/port");
