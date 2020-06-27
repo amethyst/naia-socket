@@ -6,6 +6,16 @@ use naia_client_socket::{ClientSocket, SocketEvent, MessageSender, Config, Packe
 const PING_MSG: &str = "ping";
 const PONG_MSG: &str = "pong";
 
+const SERVER_PORT: &str = "14191";
+
+cfg_if! {
+    if #[cfg(target_arch = "wasm32")] {
+        const SERVER_IP_ADDRESS: &str = "192.168.1.9"; // Put your Server's IP Address here!, can't easily find this automatically from the browser
+    } else {
+        const SERVER_IP_ADDRESS: &str = find_my_ip_address::get();
+    }
+}
+
 pub struct App {
     client_socket: ClientSocket,
     message_sender: MessageSender,
@@ -13,11 +23,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(server_socket_address: &str) -> App {
+    pub fn new() -> App {
 
-        let config = Config::default();
+        info!("Naia Client Socket Example Started");
 
-        let mut client_socket = ClientSocket::connect(&server_socket_address, Some(config));
+        let server_socket_address = format!("{}:{}", SERVER_IP_ADDRESS, SERVER_PORT);
+
+        let mut client_socket = ClientSocket::connect(&server_socket_address, Some(Config::default()));
         let mut message_sender = client_socket.get_sender();
 
         message_sender.send(Packet::new(
