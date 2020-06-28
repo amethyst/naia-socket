@@ -8,13 +8,8 @@ const PONG_MSG: &str = "pong";
 
 const SERVER_PORT: &str = "14191";
 
-cfg_if! {
-    if #[cfg(target_arch = "wasm32")] {
-        const SERVER_IP_ADDRESS: &str = "192.168.1.9"; // Put your Server's IP Address here!, can't easily find this automatically from the browser
-    } else {
-        const SERVER_IP_ADDRESS: &str = find_my_ip_address::get();
-    }
-}
+#[cfg(not(target_arch = "wasm32"))]
+use naia_client_socket::{find_my_ip_address};
 
 pub struct App {
     client_socket: ClientSocket,
@@ -27,7 +22,15 @@ impl App {
 
         info!("Naia Client Socket Example Started");
 
-        let server_socket_address = format!("{}:{}", SERVER_IP_ADDRESS, SERVER_PORT);
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                let server_ip_address: &str = "192.168.1.9"; // Put your Server's IP Address here!, can't easily find this automatically from the browser
+            } else {
+                let server_ip_address: &str = &find_my_ip_address::get();
+            }
+        }
+
+        let server_socket_address = format!("{}:{}", server_ip_address, SERVER_PORT);
 
         let mut client_socket = ClientSocket::connect(&server_socket_address, Some(Config::default()));
         let mut message_sender = client_socket.get_sender();
