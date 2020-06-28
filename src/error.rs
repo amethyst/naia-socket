@@ -4,7 +4,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum NaiaClientSocketError {
     Message(String),
-    Wrapped(Box<dyn Error + Send>)
+    Wrapped(Box<dyn Error + Send>),
 }
 
 impl fmt::Display for NaiaClientSocketError {

@@ -1,9 +1,4 @@
-
-use std::{
-    error::Error,
-    rc::Rc,
-    cell::RefCell
-};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 use crate::Packet;
 

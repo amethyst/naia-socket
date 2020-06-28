@@ -1,8 +1,6 @@
-
 pub struct Packet {
     /// The raw payload of the packet
     payload: Box<[u8]>,
-
 }
 
 impl Packet {
@@ -13,9 +11,7 @@ impl Packet {
     }
 
     pub fn new_raw(payload: Box<[u8]>) -> Packet {
-        Packet {
-            payload,
-        }
+        Packet { payload }
     }
 
     pub fn empty() -> Packet {

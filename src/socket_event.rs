@@ -1,4 +1,3 @@
-
 use crate::Packet;
 
 pub enum SocketEvent {
