@@ -7,6 +7,7 @@ cfg_if! {
         use std::collections::VecDeque;
         use web_sys::RtcDataChannel;
 
+        /// Handles sending messages to the Server for a given Client Socket
         #[derive(Clone, Debug)]
         pub struct MessageSender {
             data_channel: RtcDataChannel,
@@ -14,6 +15,8 @@ cfg_if! {
         }
 
         impl MessageSender {
+            /// Create a new MessageSender, if supplied with the RtcDataChannel and a reference to a list
+            /// of dropped messages
             pub fn new(data_channel: RtcDataChannel,
                        dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>) -> MessageSender {
                 MessageSender {
@@ -21,6 +24,8 @@ cfg_if! {
                     dropped_outgoing_messages
                 }
             }
+
+            /// Send a Packet to the Server
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
                 if let Err(_) = self.data_channel.send_with_u8_array(&packet.payload()) {
                     self.dropped_outgoing_messages.as_ref().borrow_mut().push_back(packet);

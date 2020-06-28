@@ -13,6 +13,7 @@ use crate::Packet;
 
 use naia_socket_shared::Config;
 
+#[derive(Debug)]
 pub struct WebrtcClientSocket {
     address: SocketAddr,
     message_queue: Rc<RefCell<VecDeque<Result<SocketEvent, NaiaClientSocketError>>>>,
@@ -152,9 +153,9 @@ fn webrtc_initialize(
 
     let cloned_channel = channel.clone();
     let msg_queue_clone = msg_queue.clone();
-    let channel_onopen_closure = Closure::wrap(Box::new(move |_| {
+    let channel_onopen_func: Box<dyn FnMut(JsValue)> = Box::new(move |_| {
         let msg_queue_clone_2 = msg_queue_clone.clone();
-        let channel_onmsg_closure = Closure::wrap(Box::new(move |evt: MessageEvent| {
+        let channel_onmsg_func: Box<dyn FnMut(MessageEvent)> = Box::new(move |evt: MessageEvent| {
             if let Ok(arraybuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
                 let uarray: js_sys::Uint8Array = js_sys::Uint8Array::new(&arraybuf);
                 let mut body = vec![0; uarray.length() as usize];
@@ -163,27 +164,30 @@ fn webrtc_initialize(
                     .borrow_mut()
                     .push_back(Ok(SocketEvent::Packet(Packet::new(body))));
             }
-        }) as Box<dyn FnMut(MessageEvent)>);
+        });
+        let channel_onmsg_closure = Closure::wrap(channel_onmsg_func);
 
         cloned_channel.set_onmessage(Some(channel_onmsg_closure.as_ref().unchecked_ref()));
         channel_onmsg_closure.forget();
-    }) as Box<dyn FnMut(JsValue)>);
+    });
+    let channel_onopen_closure = Closure::wrap(channel_onopen_func);
     channel.set_onopen(Some(channel_onopen_closure.as_ref().unchecked_ref()));
     channel_onopen_closure.forget();
 
-    let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
+    let onerror_func: Box<dyn FnMut(ErrorEvent)> = Box::new(move |e: ErrorEvent| {
         info!("data channel error event: {:?}", e);
-    }) as Box<dyn FnMut(ErrorEvent)>);
+    });
+    let onerror_callback = Closure::wrap(onerror_func);
     channel.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
     onerror_callback.forget();
 
     let peer_clone = peer.clone();
     let server_url_msg = Rc::new(server_url_str);
-    let peer_offer_callback = Closure::wrap(Box::new(move |e: JsValue| {
+    let peer_offer_func: Box<dyn FnMut(JsValue)> = Box::new(move |e: JsValue| {
         let session_description = e.dyn_into::<RtcSessionDescription>().unwrap();
         let peer_clone_2 = peer_clone.clone();
         let server_url_msg_clone = server_url_msg.clone();
-        let peer_desc_callback = Closure::wrap(Box::new(move |_: JsValue| {
+        let peer_desc_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
             let request = XmlHttpRequest::new().expect("can't create new XmlHttpRequest");
 
             request
@@ -197,7 +201,7 @@ fn webrtc_initialize(
 
             let request_2 = request.clone();
             let peer_clone_3 = peer_clone_2.clone();
-            let request_callback = Closure::wrap(Box::new(move |_: ProgressEvent| {
+            let request_func: Box<dyn FnMut(ProgressEvent)> = Box::new(move |_: ProgressEvent| {
                 if request_2.status().unwrap() == 200 {
                     let response_string = request_2.response_text().unwrap().unwrap();
                     let response_js_value = js_sys::JSON::parse(response_string.as_str()).unwrap();
@@ -206,7 +210,7 @@ fn webrtc_initialize(
                     let session_response_answer: SessionAnswer = session_response.answer.clone();
 
                     let peer_clone_4 = peer_clone_3.clone();
-                    let remote_desc_success_callback = Closure::wrap(Box::new(move |e: JsValue| {
+                    let remote_desc_success_func: Box<dyn FnMut(JsValue)> = Box::new(move |e: JsValue| {
                         let mut candidate_init_dict: RtcIceCandidateInit =
                             RtcIceCandidateInit::new(session_response.candidate.candidate.as_str());
                         candidate_init_dict
@@ -216,14 +220,14 @@ fn webrtc_initialize(
                         let candidate: RtcIceCandidate =
                             RtcIceCandidate::new(&candidate_init_dict).unwrap();
 
-                        let peer_add_success_callback = Closure::wrap(Box::new(move |_: JsValue| {
+                        let peer_add_success_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
                             //Client add ice candidate success
-                        })
-                            as Box<dyn FnMut(JsValue)>);
-                        let peer_add_failure_callback = Closure::wrap(Box::new(move |_: JsValue| {
+                        });
+                        let peer_add_success_callback = Closure::wrap(peer_add_success_func);
+                        let peer_add_failure_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
                             info!("Client error during 'addIceCandidate': {:?}", e);
-                        })
-                            as Box<dyn FnMut(JsValue)>);
+                        });
+                        let peer_add_failure_callback = Closure::wrap(peer_add_failure_func);
 
                         peer_clone_4.add_ice_candidate_with_rtc_ice_candidate_and_success_callback_and_failure_callback(
                             &candidate,
@@ -231,13 +235,13 @@ fn webrtc_initialize(
                             peer_add_failure_callback.as_ref().unchecked_ref());
                         peer_add_success_callback.forget();
                         peer_add_failure_callback.forget();
-                    })
-                        as Box<dyn FnMut(JsValue)>);
+                    });
+                    let remote_desc_success_callback = Closure::wrap(remote_desc_success_func);
 
-                    let remote_desc_failure_callback = Closure::wrap(Box::new(move |_: JsValue| {
+                    let remote_desc_failure_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
                         info!("Client error during 'setRemoteDescription': TODO, put value here");
-                    })
-                        as Box<dyn FnMut(JsValue)>);
+                    });
+                    let remote_desc_failure_callback = Closure::wrap(remote_desc_failure_func);
 
                     let mut rtc_session_desc_init_dict: RtcSessionDescriptionInit =
                         RtcSessionDescriptionInit::new(RtcSdpType::Answer);
@@ -252,7 +256,8 @@ fn webrtc_initialize(
                     remote_desc_success_callback.forget();
                     remote_desc_failure_callback.forget();
                 }
-            }) as Box<dyn FnMut(ProgressEvent)>);
+            });
+            let request_callback = Closure::wrap(request_func);
             request.set_onload(Some(request_callback.as_ref().unchecked_ref()));
             request_callback.forget();
 
@@ -263,7 +268,8 @@ fn webrtc_initialize(
                 .unwrap_or_else(|err| {
                     println!("WebSys, can't sent request str. Original Error: {:?}", err)
                 });
-        }) as Box<dyn FnMut(JsValue)>);
+        });
+        let peer_desc_callback = Closure::wrap(peer_desc_func);
 
         let mut session_description_init: RtcSessionDescriptionInit =
             RtcSessionDescriptionInit::new(session_description.type_());
@@ -272,11 +278,13 @@ fn webrtc_initialize(
             .set_local_description(&session_description_init)
             .then(&peer_desc_callback);
         peer_desc_callback.forget();
-    }) as Box<dyn FnMut(JsValue)>);
+    });
+    let peer_offer_callback = Closure::wrap(peer_offer_func);
 
-    let peer_error_callback = Closure::wrap(Box::new(move |_: JsValue| {
+    let peer_error_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
         info!("Client error during 'createOffer': e value here? TODO");
-    }) as Box<dyn FnMut(JsValue)>);
+    });
+    let peer_error_callback = Closure::wrap(peer_error_func);
 
     peer.create_offer().then(&peer_offer_callback);
 
