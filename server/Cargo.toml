@@ -1,0 +1,23 @@
+[package]
+name = "naia-server-socket"
+version = "0.1.0"
+authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
+edition = "2018"
+
+[features]
+use-udp = [ ]
+use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
+    "futures-core", "futures-util" ]
+
+[dependencies]
+naia-socket-shared = { path = "../naia-socket-shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
+log = "0.4"
+cfg-if = "*"
+webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true }
+clap = { version = "2.32", optional = true}
+hyper = { version = "0.13", features = ["stream"], optional = true }
+tokio = { version = "0.2", features = ["macros"], optional = true }
+futures-channel = { version = "0.3", features = ["sink"], optional = true }
+futures-core = { version = "0.3", optional = true }
+futures-sink = { version = "0.3", optional = true }
+futures-util = { version = "0.3", features = ["sink"], optional = true }
