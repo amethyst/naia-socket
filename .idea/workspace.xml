@@ -10,18 +10,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="43a278d6-d201-4742-89f8-62ccc1cd1a41" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/shared/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/rustfmt.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/src/config.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/src/find_available_port.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/src/find_my_ip_address.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/shared/src/timer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/LICENSE-APACHE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE-APACHE.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/LICENSE-MIT.txt" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE-MIT.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -50,6 +40,8 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/shared" />
       <recent name="$PROJECT_DIR$/server" />
       <recent name="$PROJECT_DIR$/client" />
     </key>
@@ -83,6 +75,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="merging client-socket" />
     <MESSAGE value="merging server-socket" />
-    <option name="LAST_COMMIT_MESSAGE" value="merging server-socket" />
+    <MESSAGE value="Merge remote-tracking branch 'NSSh/master'&#10;&#10;# Conflicts:&#10;#&#9;client/README.md&#10;#&#9;server/Cargo.toml&#10;#&#9;src/find_available_port.rs&#10;#&#9;src/find_my_ip_address.rs&#10;#&#9;src/lib.rs" />
+    <option name="LAST_COMMIT_MESSAGE" value="Merge remote-tracking branch 'NSSh/master'&#10;&#10;# Conflicts:&#10;#&#9;client/README.md&#10;#&#9;server/Cargo.toml&#10;#&#9;src/find_available_port.rs&#10;#&#9;src/find_my_ip_address.rs&#10;#&#9;src/lib.rs" />
   </component>
 </project>
