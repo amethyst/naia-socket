@@ -6,6 +6,9 @@ edition = "2018"
 description = "Common data types shared between naia-server-socket & naia-client-socket crates"
 license = "MIT OR Apache-2.0"
 
+[badges]
+maintenance = { status = "actively-developed" }
+
 [dependencies]
 log = "0.4"
 cfg-if = "*"

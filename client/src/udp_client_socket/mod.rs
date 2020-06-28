@@ -13,6 +13,7 @@ use crate::error::NaiaClientSocketError;
 use crate::Packet;
 use naia_socket_shared::{find_available_port, find_my_ip_address, Config};
 
+#[derive(Debug)]
 pub struct UdpClientSocket {
     address: SocketAddr,
     socket: Rc<RefCell<UdpSocket>>,
@@ -22,9 +23,9 @@ pub struct UdpClientSocket {
 
 impl UdpClientSocket {
     pub fn connect(server_address: &str, _: Option<Config>) -> UdpClientSocket {
-        let client_ip_address = find_my_ip_address::get();
-        let free_socket = find_available_port::get(&client_ip_address).expect("no available ports");
-        let client_socket_address = client_ip_address + ":" + free_socket.to_string().as_str();
+        let client_ip_address = find_my_ip_address().expect("cannot find current ip address");
+        let free_socket = find_available_port(&client_ip_address).expect("no available ports");
+        let client_socket_address = format!("{}:{}", client_ip_address, free_socket);
 
         let server_socket_address: SocketAddr = server_address.parse().unwrap();
 

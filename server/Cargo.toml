@@ -12,6 +12,9 @@ license = "MIT OR Apache-2.0"
 categories = ["network-programming", "game-development", "wasm", "web-programming"]
 edition = "2018"
 
+[badges]
+maintenance = { status = "actively-developed" }
+
 [features]
 use-udp = [ ]
 use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",

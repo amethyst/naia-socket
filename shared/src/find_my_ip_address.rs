@@ -1,18 +1,19 @@
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::process::Command;
 
-pub fn get() -> String {
+/// Given an IPv4 Address, attempt to find an available port on the current host
+pub fn find_my_ip_address() -> Option<IpAddr> {
     let output = match Command::new("hostname").args(&["-I"]).output() {
         Ok(ok) => ok,
         Err(_) => {
-            return String::from("");
+            return None;
         }
     };
 
     let stdout = match String::from_utf8(output.stdout) {
         Ok(ok) => ok,
         Err(_) => {
-            return String::from("");
+            return None;
         }
     };
 
@@ -22,16 +23,16 @@ pub fn get() -> String {
         Some(first) => {
             if !first.is_empty() {
                 if let Ok(addr) = first.parse::<Ipv4Addr>() {
-                    return addr.to_string();
+                    return Some(IpAddr::V4(addr));
                 } else if let Ok(addr) = first.parse::<Ipv6Addr>() {
-                    return addr.to_string();
+                    return Some(IpAddr::V6(addr));
                 } else {
-                    return String::from("");
+                    return None;
                 }
             } else {
-                return String::from("");
+                return None;
             }
         }
-        None => return String::from(""),
+        None => { return None; }
     }
 }

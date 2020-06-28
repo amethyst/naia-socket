@@ -7,7 +7,7 @@ cfg_if! {
         use std::collections::VecDeque;
         use web_sys::RtcDataChannel;
 
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         pub struct MessageSender {
             data_channel: RtcDataChannel,
             dropped_outgoing_messages: Rc<RefCell<VecDeque<Packet>>>
@@ -34,19 +34,24 @@ cfg_if! {
             net::{SocketAddr, UdpSocket},
         };
 
-        #[derive(Clone)]
+        /// Handles sending messages to the Server for a given Client Socket
+        #[derive(Clone, Debug)]
         pub struct MessageSender {
             address: SocketAddr,
             socket: Rc<RefCell<UdpSocket>>,
         }
 
         impl MessageSender {
+            /// Create a new MessageSender, if supplied with the Server's address & a reference back to
+            /// the parent Socket
             pub fn new(address: SocketAddr, socket: Rc<RefCell<UdpSocket>>) -> MessageSender {
                 MessageSender {
                     address,
                     socket,
                 }
             }
+
+            /// Send a Packet to the Server
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
 
                 //send it

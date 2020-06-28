@@ -1,9 +1,13 @@
 use std::error::Error;
 use std::fmt;
 
+/// An Error type specifically related to the Naia Client Socket
+/// This is under construction and needs to be cleaned up
 #[derive(Debug)]
 pub enum NaiaClientSocketError {
+    /// A simple error message
     Message(String),
+    /// A wrapped error from another library/codebase
     Wrapped(Box<dyn Error + Send>),
 }
 
