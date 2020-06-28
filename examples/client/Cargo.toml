@@ -1,7 +1,9 @@
 [package]
 name = "naia-client-socket-example"
-version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
+version = "0.0.0"
+workspace = "../../"
+publish = false
 edition = "2018"
 
 [lib]
@@ -12,7 +14,7 @@ name = "index" # This is because cargo-web also picks up the static assets folde
 path = "src/main.rs"
 
 [dependencies]
-naia-client-socket = { path = "../naia-client-socket" } # { git = "https://github.com/connorcarpenter/naia-client-socket" } #
+naia-client-socket = { path = "../../client" }
 log = "0.4"
 cfg-if = "*"
 

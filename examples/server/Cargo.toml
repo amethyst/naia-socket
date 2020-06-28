@@ -1,7 +1,9 @@
 [package]
 name = "naia-server-socket-example"
-version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
+version = "0.0.0"
+workspace = "../../"
+publish = false
 edition = "2018"
 
 [features]
@@ -9,7 +11,7 @@ use-udp = [ "naia-server-socket/use-udp" ]
 use-webrtc = [ "naia-server-socket/use-webrtc" ]
 
 [dependencies]
-naia-server-socket = { path = "../naia-server-socket" } # { git = "https://github.com/connorcarpenter/naia-server-socket" } #
+naia-server-socket = { path = "../../server" }
 tokio = { version = "0.2", features = ["macros"] }
 log = "0.4"
 simple_logger = { version = "1.4" }
