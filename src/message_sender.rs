@@ -28,8 +28,7 @@ cfg_if! {
             }
             pub fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
                 if let Err(_) = self.data_channel.send_with_u8_array(&packet.payload()) {
-                    let mut dropped_outgoing_messages = self.dropped_outgoing_messages.borrow_mut();
-                    dropped_outgoing_messages.push_back(packet);
+                    self.dropped_outgoing_messages.as_ref().borrow_mut().push_back(packet);
                 }
                 Ok(())
             }

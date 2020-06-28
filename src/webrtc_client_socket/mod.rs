@@ -42,11 +42,15 @@ impl WebrtcClientSocket {
     pub fn receive(&mut self) -> Result<SocketEvent, NaiaClientSocketError> {
 
         if !self.dropped_outgoing_messages.borrow().is_empty() {
-            let mut dom = self.dropped_outgoing_messages.borrow_mut();
-            let dropped_packets: Vec<Packet> = dom.drain(..).collect::<Vec<Packet>>();
-            for dropped_packet in dropped_packets {
-                self.message_sender.send(dropped_packet)
-                    .unwrap_or_else(|err| println!("Can't send dropped packet. Original Error: {:?}", err));
+            if let Some(dropped_packets) = {
+                let mut dom = self.dropped_outgoing_messages.borrow_mut();
+                let dropped_packets: Vec<Packet> = dom.drain(..).collect::<Vec<Packet>>();
+                Some(dropped_packets)
+            } {
+                for dropped_packet in dropped_packets {
+                    self.message_sender.send(dropped_packet)
+                        .unwrap_or_else(|err| println!("Can't send dropped packet. Original Error: {:?}", err));
+                }
             }
         }
 
@@ -97,8 +101,10 @@ pub struct SessionAnswer {
 #[derive(Deserialize, Debug)]
 pub struct SessionCandidate {
     pub candidate: String,
-    pub sdpMLineIndex: u16,
-    pub sdpMid: String,
+    #[serde(rename = "sdpMLineIndex")]
+    pub sdp_m_line_index: u16,
+    #[serde(rename = "sdpMid")]
+    pub sdp_mid: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -193,8 +199,8 @@ fn webrtc_initialize(address: &str, msg_queue: Rc<RefCell<VecDeque<Result<Socket
                     let remote_desc_success_callback = Closure::wrap(Box::new(move |e: JsValue| {
 
                         let mut candidate_init_dict: RtcIceCandidateInit = RtcIceCandidateInit::new(session_response.candidate.candidate.as_str());
-                        candidate_init_dict.sdp_m_line_index(Some(session_response.candidate.sdpMLineIndex));
-                        candidate_init_dict.sdp_mid(Some(session_response.candidate.sdpMid.as_str()));
+                        candidate_init_dict.sdp_m_line_index(Some(session_response.candidate.sdp_m_line_index));
+                        candidate_init_dict.sdp_mid(Some(session_response.candidate.sdp_mid.as_str()));
                         let candidate: RtcIceCandidate = RtcIceCandidate::new(&candidate_init_dict).unwrap();
 
                         let peer_add_success_callback = Closure::wrap(Box::new(move |_: JsValue| {
