@@ -10,7 +10,7 @@ use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
     "futures-core", "futures-util" ]
 
 [dependencies]
-naia-socket-shared = { path = "../naia-socket-shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
+naia-socket-shared = { path = "../shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
 log = "0.4"
 cfg-if = "*"
 webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true }

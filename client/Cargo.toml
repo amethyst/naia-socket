@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-naia-socket-shared = { path = "../naia-socket-shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
+naia-socket-shared = { path = "../shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
 cfg-if = "*"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
