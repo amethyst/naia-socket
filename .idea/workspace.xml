@@ -33,6 +33,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
     <property name="settings.editor.selected.configurable" value="language.cpp.clang-tidy" />
   </component>
   <component name="RecentsManager">
@@ -40,6 +41,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/examples/server" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/shared" />
       <recent name="$PROJECT_DIR$/server" />
