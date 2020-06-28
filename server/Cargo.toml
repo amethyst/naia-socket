@@ -2,10 +2,15 @@
 name = "naia-server-socket"
 version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
-edition = "2018"
 description = "An abstraction to provide a common API over either a UDP socket or a service that can establish WebRTC connections"
-keywords = ["webrtc", "udp", "server", "webassembly", "webrt-unreliable"]
+documentation = "https://github.com/connorcarpenter/naia-socket"
+homepage = "https://github.com/connorcarpenter/naia-socket"
+repository = "https://github.com/connorcarpenter/naia-socket"
+readme = "../README.md"
+keywords = ["webrtc", "udp", "client", "webassembly", "webrt-unreliable", "networking"]
 license = "MIT OR Apache-2.0"
+categories = ["network-programming", "game-development", "wasm", "web-programming"]
+edition = "2018"
 
 [features]
 use-udp = [ ]

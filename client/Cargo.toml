@@ -2,10 +2,15 @@
 name = "naia-client-socket"
 version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
-edition = "2018"
 description = "Abstraction to expose common API over a UDP socket on Linux, and a UDP-like WebRTC datachannel on the browser (via web_sys)"
-keywords = ["wasm", "webrtc", "udp", "client", "webassembly", "web_sys"]
+documentation = "https://github.com/connorcarpenter/naia-socket"
+homepage = "https://github.com/connorcarpenter/naia-socket"
+repository = "https://github.com/connorcarpenter/naia-socket"
+readme = "../README.md"
+keywords = ["wasm", "webrtc", "udp", "client", "webassembly", "web_sys", "networking"]
 license = "MIT OR Apache-2.0"
+categories = ["network-programming", "game-development", "wasm", "web-programming"]
+edition = "2018"
 
 [dependencies]
 log = "0.4"
