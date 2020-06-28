@@ -10,19 +10,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="43a278d6-d201-4742-89f8-62ccc1cd1a41" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/rustfmt.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/error.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/message_sender.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/packet.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/server_socket.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/socket_event.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/udp_server_socket/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/server/src/webrtc_server_socket/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/rustfmt.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/src/config.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/src/find_available_port.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/src/find_my_ip_address.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/shared/src/timer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/client/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/LICENSE-APACHE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE-APACHE.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/LICENSE-MIT.txt" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE-MIT.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -45,6 +44,15 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="language.cpp.clang-tidy" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/server" />
+      <recent name="$PROJECT_DIR$/client" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -74,6 +82,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="merging client-socket" />
-    <option name="LAST_COMMIT_MESSAGE" value="merging client-socket" />
+    <MESSAGE value="merging server-socket" />
+    <option name="LAST_COMMIT_MESSAGE" value="merging server-socket" />
   </component>
 </project>
