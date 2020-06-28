@@ -1,0 +1,22 @@
+[package]
+name = "naia-client-socket"
+version = "0.1.0"
+authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+log = "0.4"
+naia-socket-shared = { path = "../naia-socket-shared" } # { git = "https://github.com/connorcarpenter/naia-socket-shared" } #
+cfg-if = "*"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+url = "2.1.1"
+wasm-bindgen = { version = "0.2.45", features = [ "serde-serialize" ] }
+js-sys = "0.3"
+web_sys = { version = "0.3.22", package = "web-sys", features = [
+    "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelType",
+    "RtcIceCandidate", "RtcIceCandidateInit",
+    "RtcPeerConnection", "RtcSdpType",  "RtcSessionDescription", "RtcSessionDescriptionInit",
+    "XmlHttpRequest", "XmlHttpRequestEventTarget", "MessageEvent", "ProgressEvent", "ErrorEvent", "Blob" ] }
+serde = "^1.0.59"
+serde_derive = "^1.0.59"
