@@ -5,7 +5,7 @@ authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
 edition = "2018"
 description = "An abstraction to provide a common API over either a UDP socket or a service that can establish WebRTC connections"
 keywords = ["webrtc", "udp", "server", "webassembly", "webrt-unreliable"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 [features]
 use-udp = [ ]
