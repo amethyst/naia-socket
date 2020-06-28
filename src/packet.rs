@@ -16,10 +16,7 @@ impl Packet {
     }
 
     pub fn new_raw(address: SocketAddr, payload: Box<[u8]>) -> Packet {
-        Packet {
-            address,
-            payload
-        }
+        Packet { address, payload }
     }
 
     pub fn payload(&self) -> &[u8] {

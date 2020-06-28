@@ -1,17 +1,16 @@
-
 use std::{
-    collections::{HashSet},
-    net::{SocketAddr, UdpSocket},
     cell::RefCell,
-    rc::Rc,
+    collections::HashSet,
     io::ErrorKind,
+    net::{SocketAddr, UdpSocket},
+    rc::Rc,
 };
 
-use super::socket_event::SocketEvent;
 use super::message_sender::MessageSender;
-use naia_socket_shared::{Config, Timer};
+use super::socket_event::SocketEvent;
 use crate::error::NaiaServerSocketError;
 use crate::Packet;
+use naia_socket_shared::{Config, Timer};
 
 pub struct UdpServerSocket {
     socket: Rc<RefCell<UdpSocket>>,
@@ -24,7 +23,10 @@ pub struct UdpServerSocket {
 impl UdpServerSocket {
     pub async fn listen(address: &str, config: Option<Config>) -> UdpServerSocket {
         let socket = Rc::new(RefCell::new(UdpSocket::bind(address).unwrap()));
-        socket.borrow().set_nonblocking(true).expect("can't set socket to non-blocking!");
+        socket
+            .borrow()
+            .set_nonblocking(true)
+            .expect("can't set socket to non-blocking!");
 
         let tick_interval = match config {
             Some(config) => config.tick_interval,
@@ -46,7 +48,6 @@ impl UdpServerSocket {
     pub async fn receive(&mut self) -> Result<SocketEvent, NaiaServerSocketError> {
         let mut output: Option<Result<SocketEvent, NaiaServerSocketError>> = None;
         while output.is_none() {
-
             if self.tick_timer.ringing() {
                 self.tick_timer.reset();
                 output = Some(Ok(SocketEvent::Tick));
@@ -54,7 +55,8 @@ impl UdpServerSocket {
             }
 
             let buffer: &mut [u8] = self.receive_buffer.as_mut();
-            match self.socket
+            match self
+                .socket
                 .borrow()
                 .recv_from(buffer)
                 .map(move |(recv_len, address)| (&buffer[..recv_len], address))
