@@ -5,9 +5,9 @@ A cross-platform (including Wasm) Socket API that wraps unreliable & unordered m
 Utilizes the wonderful https://github.com/kyren/webrtc-unreliable
 
 
-##Examples
+## Examples
 
-###Server:
+### Server:
 
 To run a UDP server on Linux: (that will be able to communicate with Linux clients)
     `cd examples/server`
@@ -17,7 +17,7 @@ To run a WebRTC server on Linux: (that will be able to communicate with Web clie
     `cd examples/server`
     `cargo run --features "use-webrtc"``
 
-###Client:
+### Client:
 
 To run a UDP client on Linux: (that will be able to communicate with a UDP server)
     `cd examples/client`
