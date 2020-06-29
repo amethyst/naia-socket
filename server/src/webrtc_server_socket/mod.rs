@@ -7,11 +7,10 @@ use hyper::{
 use log::info;
 use std::{
     collections::HashSet,
-    io::Error as IoError,
     net::{IpAddr, SocketAddr, TcpListener},
 };
 use webrtc_unreliable::{
-    MessageResult, MessageType, SendError, Server as InnerRtcServer, SessionEndpoint,
+    MessageResult, MessageType, RecvError, SendError, Server as InnerRtcServer, SessionEndpoint,
 };
 
 use futures_channel::mpsc;
@@ -24,7 +23,7 @@ use crate::error::NaiaServerSocketError;
 use crate::Packet;
 use naia_socket_shared::Config;
 
-const MESSAGE_BUFFER_SIZE: usize = 8;
+const CLIENT_CHANNEL_SIZE: usize = 8;
 
 #[derive(Debug)]
 pub struct WebrtcServerSocket {
@@ -33,6 +32,7 @@ pub struct WebrtcServerSocket {
     tick_timer: Interval,
     rtc_server: RtcServer,
     clients: HashSet<SocketAddr>,
+    message_buffer: Vec<u8>,
 }
 
 impl WebrtcServerSocket {
@@ -44,7 +44,7 @@ impl WebrtcServerSocket {
             get_available_port(webrtc_listen_ip.to_string().as_str()).expect("no available port");
         let webrtc_listen_addr = SocketAddr::new(webrtc_listen_ip, webrtc_listen_port);
 
-        let (to_client_sender, to_client_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
+        let (to_client_sender, to_client_receiver) = mpsc::channel(CLIENT_CHANNEL_SIZE);
 
         let rtc_server = RtcServer::new(webrtc_listen_addr).await;
 
@@ -59,6 +59,7 @@ impl WebrtcServerSocket {
             rtc_server,
             tick_timer: time::interval(tick_interval),
             clients: HashSet::new(),
+            message_buffer: vec![0; 0x10000], // Hopefully get rid of this one day..
         };
 
         let session_endpoint = socket.rtc_server.session_endpoint();
@@ -105,7 +106,7 @@ impl WebrtcServerSocket {
 
     pub async fn receive(&mut self) -> Result<SocketEvent, NaiaServerSocketError> {
         enum Next {
-            FromClientMessage(Result<Packet, IoError>),
+            FromClientMessage(Result<MessageResult, RecvError>),
             ToClientMessage(Packet),
             PeriodicTimer,
         }
@@ -118,20 +119,14 @@ impl WebrtcServerSocket {
                 let to_client_receiver_next = self.to_client_receiver.next().fuse();
                 pin_mut!(to_client_receiver_next);
 
+                let message_buffer = &mut self.message_buffer;
                 let rtc_server = &mut self.rtc_server;
-                let from_client_message_receiver_next = rtc_server.recv().fuse();
+                let from_client_message_receiver_next = rtc_server.recv(message_buffer).fuse();
                 pin_mut!(from_client_message_receiver_next);
 
                 select! {
                     from_client_result = from_client_message_receiver_next => {
-                        Next::FromClientMessage(
-                            match from_client_result {
-                                Ok(msg) => {
-                                    Ok(Packet::new(msg.remote_addr, msg.message.as_ref().to_vec()))
-                                }
-                                Err(err) => { Err(err) }
-                            }
-                        )
+                        Next::FromClientMessage(from_client_result)
                     }
                     to_client_message = to_client_receiver_next => {
                         Next::ToClientMessage(
@@ -146,12 +141,13 @@ impl WebrtcServerSocket {
 
             match next {
                 Next::FromClientMessage(from_client_message) => match from_client_message {
-                    Ok(packet) => {
-                        let address = packet.address();
+                    Ok(message_result) => {
+                        let address = message_result.remote_addr;
                         if !self.clients.contains(&address) {
                             self.clients.insert(address);
                         }
-                        return Ok(SocketEvent::Packet(packet));
+                        let payload: Vec<u8> = self.message_buffer[0..message_result.message_len].iter().cloned().collect();
+                        return Ok(SocketEvent::Packet(Packet::new_raw(address, payload.into_boxed_slice())));
                     }
                     Err(err) => {
                         return Err(NaiaServerSocketError::Wrapped(Box::new(err)));
@@ -208,15 +204,15 @@ impl RtcServer {
             .await
             .expect("could not start RTC server");
 
-        return RtcServer { inner };
+        return RtcServer { inner,  };
     }
 
     pub fn session_endpoint(&self) -> SessionEndpoint {
         self.inner.session_endpoint()
     }
 
-    pub async fn recv(&mut self) -> Result<MessageResult<'_>, IoError> {
-        self.inner.recv().await
+    pub async fn recv(&mut self, buf: &mut [u8]) -> Result<MessageResult, RecvError> {
+        self.inner.recv(buf).await
     }
 
     pub async fn send(
