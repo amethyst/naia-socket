@@ -1,5 +1,10 @@
 # naia-socket
 
+A cross-platform (including Wasm) Socket API that wraps unreliable & unordered messages, using WebRTC & UDP.
+
+Utilizes the wonderful https://github.com/kyren/webrtc-unreliable
+
+
 ##Examples
 
 ###Server:
