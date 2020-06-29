@@ -155,16 +155,17 @@ fn webrtc_initialize(
     let msg_queue_clone = msg_queue.clone();
     let channel_onopen_func: Box<dyn FnMut(JsValue)> = Box::new(move |_| {
         let msg_queue_clone_2 = msg_queue_clone.clone();
-        let channel_onmsg_func: Box<dyn FnMut(MessageEvent)> = Box::new(move |evt: MessageEvent| {
-            if let Ok(arraybuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
-                let uarray: js_sys::Uint8Array = js_sys::Uint8Array::new(&arraybuf);
-                let mut body = vec![0; uarray.length() as usize];
-                uarray.copy_to(&mut body[..]);
-                msg_queue_clone_2
-                    .borrow_mut()
-                    .push_back(Ok(SocketEvent::Packet(Packet::new(body))));
-            }
-        });
+        let channel_onmsg_func: Box<dyn FnMut(MessageEvent)> =
+            Box::new(move |evt: MessageEvent| {
+                if let Ok(arraybuf) = evt.data().dyn_into::<js_sys::ArrayBuffer>() {
+                    let uarray: js_sys::Uint8Array = js_sys::Uint8Array::new(&arraybuf);
+                    let mut body = vec![0; uarray.length() as usize];
+                    uarray.copy_to(&mut body[..]);
+                    msg_queue_clone_2
+                        .borrow_mut()
+                        .push_back(Ok(SocketEvent::Packet(Packet::new(body))));
+                }
+            });
         let channel_onmsg_closure = Closure::wrap(channel_onmsg_func);
 
         cloned_channel.set_onmessage(Some(channel_onmsg_closure.as_ref().unchecked_ref()));
@@ -210,37 +211,47 @@ fn webrtc_initialize(
                     let session_response_answer: SessionAnswer = session_response.answer.clone();
 
                     let peer_clone_4 = peer_clone_3.clone();
-                    let remote_desc_success_func: Box<dyn FnMut(JsValue)> = Box::new(move |e: JsValue| {
-                        let mut candidate_init_dict: RtcIceCandidateInit =
-                            RtcIceCandidateInit::new(session_response.candidate.candidate.as_str());
-                        candidate_init_dict
-                            .sdp_m_line_index(Some(session_response.candidate.sdp_m_line_index));
-                        candidate_init_dict
-                            .sdp_mid(Some(session_response.candidate.sdp_mid.as_str()));
-                        let candidate: RtcIceCandidate =
-                            RtcIceCandidate::new(&candidate_init_dict).unwrap();
+                    let remote_desc_success_func: Box<dyn FnMut(JsValue)> = Box::new(
+                        move |e: JsValue| {
+                            let mut candidate_init_dict: RtcIceCandidateInit =
+                                RtcIceCandidateInit::new(
+                                    session_response.candidate.candidate.as_str(),
+                                );
+                            candidate_init_dict.sdp_m_line_index(Some(
+                                session_response.candidate.sdp_m_line_index,
+                            ));
+                            candidate_init_dict
+                                .sdp_mid(Some(session_response.candidate.sdp_mid.as_str()));
+                            let candidate: RtcIceCandidate =
+                                RtcIceCandidate::new(&candidate_init_dict).unwrap();
 
-                        let peer_add_success_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
-                            //Client add ice candidate success
-                        });
-                        let peer_add_success_callback = Closure::wrap(peer_add_success_func);
-                        let peer_add_failure_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
-                            info!("Client error during 'addIceCandidate': {:?}", e);
-                        });
-                        let peer_add_failure_callback = Closure::wrap(peer_add_failure_func);
+                            let peer_add_success_func: Box<dyn FnMut(JsValue)> =
+                                Box::new(move |_: JsValue| {
+                                    //Client add ice candidate success
+                                });
+                            let peer_add_success_callback = Closure::wrap(peer_add_success_func);
+                            let peer_add_failure_func: Box<dyn FnMut(JsValue)> =
+                                Box::new(move |_: JsValue| {
+                                    info!("Client error during 'addIceCandidate': {:?}", e);
+                                });
+                            let peer_add_failure_callback = Closure::wrap(peer_add_failure_func);
 
-                        peer_clone_4.add_ice_candidate_with_rtc_ice_candidate_and_success_callback_and_failure_callback(
+                            peer_clone_4.add_ice_candidate_with_rtc_ice_candidate_and_success_callback_and_failure_callback(
                             &candidate,
                             peer_add_success_callback.as_ref().unchecked_ref(),
                             peer_add_failure_callback.as_ref().unchecked_ref());
-                        peer_add_success_callback.forget();
-                        peer_add_failure_callback.forget();
-                    });
+                            peer_add_success_callback.forget();
+                            peer_add_failure_callback.forget();
+                        },
+                    );
                     let remote_desc_success_callback = Closure::wrap(remote_desc_success_func);
 
-                    let remote_desc_failure_func: Box<dyn FnMut(JsValue)> = Box::new(move |_: JsValue| {
-                        info!("Client error during 'setRemoteDescription': TODO, put value here");
-                    });
+                    let remote_desc_failure_func: Box<dyn FnMut(JsValue)> =
+                        Box::new(move |_: JsValue| {
+                            info!(
+                                "Client error during 'setRemoteDescription': TODO, put value here"
+                            );
+                        });
                     let remote_desc_failure_callback = Closure::wrap(remote_desc_failure_func);
 
                     let mut rtc_session_desc_init_dict: RtcSessionDescriptionInit =

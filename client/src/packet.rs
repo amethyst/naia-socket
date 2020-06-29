@@ -1,4 +1,3 @@
-
 /// A Packet that can be sent to the Server
 #[derive(Debug)]
 pub struct Packet {

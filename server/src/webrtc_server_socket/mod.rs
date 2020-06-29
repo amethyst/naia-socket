@@ -10,7 +10,9 @@ use std::{
     io::Error as IoError,
     net::{IpAddr, SocketAddr, TcpListener},
 };
-use webrtc_unreliable::{MessageType, MessageResult, SendError, SessionEndpoint, Server as InnerRtcServer};
+use webrtc_unreliable::{
+    MessageResult, MessageType, SendError, Server as InnerRtcServer, SessionEndpoint,
+};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
@@ -44,8 +46,7 @@ impl WebrtcServerSocket {
 
         let (to_client_sender, to_client_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
 
-        let rtc_server = RtcServer::new(webrtc_listen_addr)
-            .await;
+        let rtc_server = RtcServer::new(webrtc_listen_addr).await;
 
         let tick_interval = match config {
             Some(config) => config.tick_interval,
@@ -198,7 +199,7 @@ fn port_is_available(ip: &str, port: u16) -> bool {
 }
 
 struct RtcServer {
-    inner: InnerRtcServer
+    inner: InnerRtcServer,
 }
 
 impl RtcServer {
@@ -222,7 +223,8 @@ impl RtcServer {
         &mut self,
         message: &[u8],
         message_type: MessageType,
-        remote_addr: &SocketAddr) -> Result<(), SendError> {
+        remote_addr: &SocketAddr,
+    ) -> Result<(), SendError> {
         self.inner.send(message, message_type, remote_addr).await
     }
 }

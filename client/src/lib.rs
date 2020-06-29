@@ -1,12 +1,16 @@
 //! # Naia Client Socket
 //! A Socket abstraction over either a UDP socket on native Linux, or a unreliable WebRTC datachannel on the browser
 
-#![deny(missing_docs,
+#![deny(
+    missing_docs,
     missing_debug_implementations,
-    trivial_casts, trivial_numeric_casts,
+    trivial_casts,
+    trivial_numeric_casts,
     unsafe_code,
     unstable_features,
-    unused_import_braces, unused_qualifications)]
+    unused_import_braces,
+    unused_qualifications
+)]
 
 #[macro_use]
 extern crate cfg_if;

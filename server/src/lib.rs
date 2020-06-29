@@ -2,12 +2,16 @@
 //! Provides an abstraction of a Socket capable of sending/receiving to many clients, using either
 //! an underlying UdpSocket or a service that can communicate via unreliable WebRTC datachannels
 
-#![deny(missing_docs,
+#![deny(
+    missing_docs,
     missing_debug_implementations,
-    trivial_casts, trivial_numeric_casts,
+    trivial_casts,
+    trivial_numeric_casts,
     unsafe_code,
     unstable_features,
-    unused_import_braces, unused_qualifications)]
+    unused_import_braces,
+    unused_qualifications
+)]
 
 extern crate log;
 

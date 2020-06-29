@@ -33,6 +33,8 @@ pub fn find_my_ip_address() -> Option<IpAddr> {
                 return None;
             }
         }
-        None => { return None; }
+        None => {
+            return None;
+        }
     }
 }
