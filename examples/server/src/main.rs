@@ -15,7 +15,8 @@ async fn main() {
 
     info!("Naia Server Socket Example Started");
 
-    let current_socket_address = find_my_ip_address::get() + ":" + SERVER_PORT;
+    let current_ip_address = find_my_ip_address().expect("can't find ip address");
+    let current_socket_address = format!("{}:{}", current_ip_address, SERVER_PORT);
 
     let config = Config::default();
 
