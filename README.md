@@ -1,6 +1,6 @@
 # naia-socket
 
-A cross-platform (including Wasm) Socket API that wraps unreliable & unordered messages, using WebRTC & UDP.
+A cross-platform (including Wasm) Socket API that wraps unreliable & unordered communication, using WebRTC & UDP.
 
 Utilizes the wonderful https://github.com/kyren/webrtc-unreliable
 
@@ -10,24 +10,24 @@ Utilizes the wonderful https://github.com/kyren/webrtc-unreliable
 ### Server:
 
 To run a UDP server on Linux: (that will be able to communicate with Linux clients)
-    `cd examples/server`
-    `cargo run --features "use-udp"``
+    1. `cd examples/server`
+    2. `cargo run --features "use-udp"``
 
 To run a WebRTC server on Linux: (that will be able to communicate with Web clients)
-    `cd examples/server`
-    `cargo run --features "use-webrtc"``
+    1. `cd examples/server`
+    2. `cargo run --features "use-webrtc"``
 
 ### Client:
 
 To run a UDP client on Linux: (that will be able to communicate with a UDP server)
-    `cd examples/client`
-    `cargo run`
+    1. `cd examples/client`
+    2. `cargo run`
 
 To run a WebRTC client on Web: (that will be able to communicate with a WebRTC server)
-    Enter in your IP Address at the appropriate spot in examples/client/src/app.rs
-    `cd examples/client`
-    `npm install` //should only need to do this once to install dependencies
-    `npm run start` //this will open a web browser, and hot reload
+    1. Enter in your IP Address at the appropriate spot in examples/client/src/app.rs
+    2. `cd examples/client`
+    3. `npm install` //should only need to do this once to install dependencies
+    4. `npm run start` //this will open a web browser, and hot reload
 
 
 To simply build these examples instead of running them, substitute
