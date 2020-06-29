@@ -146,8 +146,14 @@ impl WebrtcServerSocket {
                         if !self.clients.contains(&address) {
                             self.clients.insert(address);
                         }
-                        let payload: Vec<u8> = self.message_buffer[0..message_result.message_len].iter().cloned().collect();
-                        return Ok(SocketEvent::Packet(Packet::new_raw(address, payload.into_boxed_slice())));
+                        let payload: Vec<u8> = self.message_buffer[0..message_result.message_len]
+                            .iter()
+                            .cloned()
+                            .collect();
+                        return Ok(SocketEvent::Packet(Packet::new_raw(
+                            address,
+                            payload.into_boxed_slice(),
+                        )));
                     }
                     Err(err) => {
                         return Err(NaiaServerSocketError::Wrapped(Box::new(err)));
@@ -204,7 +210,7 @@ impl RtcServer {
             .await
             .expect("could not start RTC server");
 
-        return RtcServer { inner,  };
+        return RtcServer { inner };
     }
 
     pub fn session_endpoint(&self) -> SessionEndpoint {
