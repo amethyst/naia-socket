@@ -12,6 +12,7 @@ use crate::error::NaiaServerSocketError;
 use crate::Packet;
 use naia_socket_shared::{Config, Timer};
 
+#[derive(Debug)]
 pub struct UdpServerSocket {
     socket: Rc<RefCell<UdpSocket>>,
     receive_buffer: Vec<u8>,

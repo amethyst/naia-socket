@@ -4,10 +4,11 @@ use crate::Packet;
 
 cfg_if! {
     if #[cfg(feature = "use-webrtc")] {
-        /// WebRTC Message Sender
+        // WebRTC Message Sender
         use futures_channel;
         use futures_util::SinkExt;
 
+        #[derive(Debug)]
         pub struct MessageSender {
             internal: futures_channel::mpsc::Sender<Packet>,
         }
@@ -27,7 +28,7 @@ cfg_if! {
         }
     }
     else if #[cfg(feature = "use-udp")] {
-        /// UDP Message Sender
+        // UDP Message Sender
         use std::{
             rc::Rc,
             cell::RefCell,
@@ -35,19 +36,24 @@ cfg_if! {
             collections::HashSet,
         };
 
-        #[derive(Clone)]
+        /// Handles sending messages to a Client that has established a connection with the Server socket
+        #[derive(Clone, Debug)]
         pub struct MessageSender {
             socket: Rc<RefCell<UdpSocket>>,
             clients: Rc<RefCell<HashSet<SocketAddr>>>,
         }
 
         impl MessageSender {
+            /// Create a new MessageSender, if supplied with the UdpSocket and a reference to a list
+            /// of established clients
             pub fn new(socket: Rc<RefCell<UdpSocket>>, clients: Rc<RefCell<HashSet<SocketAddr>>>) -> MessageSender {
                 MessageSender {
                     socket,
                     clients,
                 }
             }
+
+            /// Send a Packet to a client
             pub async fn send(&mut self, packet: Packet) -> Result<(), Box<dyn Error + Send>> {
                 let address = packet.address();
                 if !self.clients.borrow_mut().contains(&address) {

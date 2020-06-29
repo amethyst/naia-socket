@@ -2,9 +2,13 @@ use std::error::Error;
 use std::fmt;
 use std::net::SocketAddr;
 
+/// An Error type specifically related to the Naia Server Socket
+/// This is under construction and needs to be cleaned up
 #[derive(Debug)]
 pub enum NaiaServerSocketError {
+    /// A wrapped error from another library/codebase
     Wrapped(Box<dyn Error>),
+    /// An error indicating an inability to send to the given address
     SendError(SocketAddr),
 }
 
