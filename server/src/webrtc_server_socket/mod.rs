@@ -10,7 +10,7 @@ use std::{
     io::Error as IoError,
     net::{IpAddr, SocketAddr, TcpListener},
 };
-use webrtc_unreliable::{MessageType, Server as RtcServer};
+use webrtc_unreliable::{MessageType, MessageResult, SendError, SessionEndpoint, Server as InnerRtcServer};
 
 use futures_channel::mpsc;
 use futures_util::{pin_mut, select, FutureExt, StreamExt};
@@ -24,6 +24,7 @@ use naia_socket_shared::Config;
 
 const MESSAGE_BUFFER_SIZE: usize = 8;
 
+#[derive(Debug)]
 pub struct WebrtcServerSocket {
     to_client_sender: mpsc::Sender<Packet>,
     to_client_receiver: mpsc::Receiver<Packet>,
@@ -43,9 +44,8 @@ impl WebrtcServerSocket {
 
         let (to_client_sender, to_client_receiver) = mpsc::channel(MESSAGE_BUFFER_SIZE);
 
-        let rtc_server = RtcServer::new(webrtc_listen_addr, webrtc_listen_addr)
-            .await
-            .expect("could not start RTC server");
+        let rtc_server = RtcServer::new(webrtc_listen_addr)
+            .await;
 
         let tick_interval = match config {
             Some(config) => config.tick_interval,
@@ -194,5 +194,42 @@ fn port_is_available(ip: &str, port: u16) -> bool {
     match TcpListener::bind((ip, port)) {
         Ok(_) => true,
         Err(_) => false,
+    }
+}
+
+struct RtcServer {
+    inner: InnerRtcServer
+}
+
+impl RtcServer {
+    pub async fn new(address: SocketAddr) -> RtcServer {
+        let inner = InnerRtcServer::new(address, address)
+            .await
+            .expect("could not start RTC server");
+
+        return RtcServer { inner };
+    }
+
+    pub fn session_endpoint(&self) -> SessionEndpoint {
+        self.inner.session_endpoint()
+    }
+
+    pub async fn recv(&mut self) -> Result<MessageResult<'_>, IoError> {
+        self.inner.recv().await
+    }
+
+    pub async fn send(
+        &mut self,
+        message: &[u8],
+        message_type: MessageType,
+        remote_addr: &SocketAddr) -> Result<(), SendError> {
+        self.inner.send(message, message_type, remote_addr).await
+    }
+}
+
+use std::fmt;
+impl fmt::Debug for RtcServer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "RtcServer")
     }
 }
