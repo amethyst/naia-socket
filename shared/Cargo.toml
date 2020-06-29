@@ -2,9 +2,13 @@
 name = "naia-socket-shared"
 version = "0.1.0"
 authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
-edition = "2018"
 description = "Common data types shared between naia-server-socket & naia-client-socket crates"
+documentation = "https://docs.rs/naia-socket"
+homepage = "https://github.com/connorcarpenter/naia-socket"
+repository = "https://github.com/connorcarpenter/naia-socket"
+readme = "../README.md"
 license = "MIT OR Apache-2.0"
+edition = "2018"
 
 [badges]
 maintenance = { status = "actively-developed" }
