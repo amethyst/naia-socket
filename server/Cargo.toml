@@ -23,7 +23,7 @@ use-webrtc = [ "webrtc-unreliable", "clap", "hyper", "tokio", "futures-channel",
 [dependencies]
 naia-socket-shared = { version = "0.1.0", path = "../shared" }
 log = "0.4"
-cfg-if = "*"
+cfg-if = "0.1.10"
 webrtc-unreliable = { git = "https://github.com/kyren/webrtc-unreliable", optional = true }
 clap = { version = "2.32", optional = true}
 hyper = { version = "0.13", features = ["stream"], optional = true }
